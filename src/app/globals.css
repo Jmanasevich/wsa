@@ -6,17 +6,76 @@
   --alb-primary: #46525A;
   --alb-orange: #F26722;
   --vino: #722F37;
+  --vino-deep: #4E1F25;
+  --paper: #F6F4F1;
+  --card-border: #E9E4DE;
 }
 
-.informe h1 { @apply text-2xl font-bold text-vino-deep mt-6 mb-3; }
-.informe h2 { @apply text-xl font-bold text-alb-primary mt-5 mb-2; }
-.informe h3 { @apply text-lg font-semibold text-alb-primary mt-4 mb-2; }
-.informe p { @apply my-2 leading-relaxed; }
-.informe ul, .informe ol { @apply my-2 ml-6 list-disc; }
+body { background: var(--paper); }
+
+/* ---------- Componentes ---------- */
+.card {
+  @apply bg-white rounded-2xl border;
+  border-color: var(--card-border);
+  box-shadow: 0 1px 2px rgba(78, 31, 37, 0.04), 0 8px 24px -12px rgba(78, 31, 37, 0.10);
+}
+
+.chip {
+  @apply px-4 py-2 rounded-full text-sm font-medium border transition-all duration-150 select-none;
+}
+.chip-off { @apply bg-white text-alb-primary border-gray-300 hover:border-vino hover:text-vino; }
+.chip-on {
+  @apply text-white border-transparent;
+  background: linear-gradient(135deg, #722F37 0%, #4E1F25 100%);
+  box-shadow: 0 4px 12px -4px rgba(114, 47, 55, 0.5);
+}
+.chip-sm { @apply px-3 py-1.5 text-xs; }
+.chip-orange-on {
+  @apply text-white border-transparent;
+  background: linear-gradient(135deg, #F26722 0%, #D9531A 100%);
+  box-shadow: 0 4px 12px -4px rgba(242, 103, 34, 0.45);
+}
+
+.btn-primary {
+  @apply text-white font-semibold px-7 py-2.5 rounded-xl transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed;
+  background: linear-gradient(135deg, #722F37 0%, #4E1F25 100%);
+  box-shadow: 0 6px 16px -6px rgba(114, 47, 55, 0.55);
+}
+.btn-primary:hover:not(:disabled) { filter: brightness(1.12); transform: translateY(-1px); }
+
+.badge { @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold uppercase tracking-wide; }
+.badge-nueva { @apply bg-slate-100 text-slate-600; }
+.badge-validada { @apply bg-emerald-50 text-emerald-700; }
+.badge-en_piloto { @apply bg-amber-50 text-amber-700; }
+.badge-ejecutada { color: #722F37; background: #F7ECEC; }
+.badge-archivada { @apply bg-gray-100 text-gray-400; }
+
+.stat-tile { @apply flex-1 min-w-[130px] rounded-xl px-4 py-3 border; border-color: var(--card-border); background: #FBFAF8; }
+.stat-num { @apply text-2xl font-bold leading-none; color: var(--vino-deep); }
+.stat-label { @apply text-[11px] uppercase tracking-wider mt-1.5; color: #8B9AA3; }
+
+.spinner {
+  width: 16px; height: 16px; border-radius: 9999px;
+  border: 2px solid rgba(114, 47, 55, 0.25); border-top-color: #722F37;
+  animation: girar 0.8s linear infinite; display: inline-block;
+}
+@keyframes girar { to { transform: rotate(360deg); } }
+
+/* ---------- Informe (tipografía editorial) ---------- */
+.informe { font-family: Georgia, 'Times New Roman', serif; @apply text-[15px] leading-relaxed text-alb-text; }
+.informe h1 { @apply text-2xl font-bold mt-6 mb-3; color: var(--vino-deep); font-family: var(--font-montserrat), sans-serif; }
+.informe h2 { @apply text-lg font-bold mt-6 mb-2 pb-1 border-b; color: var(--alb-primary); border-color: var(--card-border); font-family: var(--font-montserrat), sans-serif; }
+.informe h3 { @apply text-base font-semibold mt-4 mb-2; color: var(--alb-primary); font-family: var(--font-montserrat), sans-serif; }
+.informe p { @apply my-2.5; }
+.informe ul, .informe ol { @apply my-2 ml-6 list-disc space-y-1; }
 .informe ol { @apply list-decimal; }
-.informe table { @apply w-full text-sm my-3 border-collapse; }
-.informe th { @apply bg-alb-primary text-white text-left px-2 py-1.5; }
-.informe td { @apply border-b border-gray-200 px-2 py-1.5 align-top; }
-.informe blockquote { @apply border-l-4 border-vino pl-3 italic text-gray-600 my-3; }
-.informe strong { @apply text-alb-primary; }
-.informe a { @apply text-vino underline; }
+.informe table { @apply w-full text-[13px] my-4 border-collapse; font-family: var(--font-montserrat), sans-serif; }
+.informe th { @apply text-white text-left px-3 py-2 text-xs uppercase tracking-wide; background: var(--alb-primary); }
+.informe th:first-child { border-radius: 8px 0 0 0; }
+.informe th:last-child { border-radius: 0 8px 0 0; }
+.informe td { @apply border-b px-3 py-2 align-top; border-color: var(--card-border); }
+.informe tr:nth-child(even) td { background: #FBFAF8; }
+.informe blockquote { @apply border-l-4 pl-4 italic my-3; border-color: var(--vino); color: #6b5b5d; }
+.informe strong { color: var(--vino-deep); }
+.informe a { color: var(--vino); text-decoration: underline; }
+.informe code { @apply text-[13px] bg-gray-100 rounded px-1; }
