@@ -21,6 +21,7 @@ const PERFILES = [
 
 const ESTADOS = ['nueva', 'validada', 'en_piloto', 'ejecutada', 'archivada'];
 
+const ORIGENES = ['Origen: Chile', 'Argentina', 'España', 'Italia', 'Francia', 'EE.UU. (origen)', 'Australia', 'Nueva Zelanda', 'Sudáfrica', 'Portugal', 'Uruguay', 'Otro origen (indicar en la consulta)'];
 const MERCADOS = ['Global', 'EE.UU.', 'Reino Unido', 'Brasil', 'China', 'Japón', 'Corea del Sur', 'Canadá', 'México', 'Suecia', 'Noruega', 'Finlandia', 'Alemania', 'Países Bajos', 'Irlanda', 'Otro (indicar en la consulta)'];
 const CANALES = ['Todos los canales', 'Retail / Off-trade', 'Monopolio estatal', 'On-trade / HORECA', 'E-commerce / DTC', 'Private label', 'Granel'];
 const CEPAS = ['Todas las cepas', 'Sauvignon Blanc', 'Pinot Noir', 'Cabernet Sauvignon', 'Carmenère', 'Chardonnay', 'Syrah', 'Cinsault / País (Itata-Maule)', 'Blend tinto', 'Espumoso', 'Rosado', 'NoLo (sin/bajo alcohol)', 'Orgánico / sustentable'];
@@ -29,6 +30,7 @@ export default function Home() {
   const [modo, setModo] = useState<Modo>('radar');
   const [perfil, setPerfil] = useState<'A' | 'B' | 'C'>('A');
   const [verificar, setVerificar] = useState(true);
+  const [origenSel, setOrigenSel] = useState(ORIGENES[0]);
   const [mercadoSel, setMercadoSel] = useState(MERCADOS[0]);
   const [canalSel, setCanalSel] = useState(CANALES[0]);
   const [cepaSel, setCepaSel] = useState(CEPAS[0]);
@@ -88,6 +90,7 @@ export default function Home() {
       <div class="spin"></div><h2 style="color:#722F37;margin:0 0 6px">Generando informe…</h2>
       <p style="color:#8B9AA3;font-size:.9rem">Barriendo fuentes, validando hipótesis y armando el entregable.<br/>Esto toma entre 1 y 4 minutos. No cierre esta pestaña.</p></div>`));
     const filtros: string[] = [];
+    if (origenSel !== ORIGENES[0] && !origenSel.startsWith('Otro')) filtros.push(`País de origen del vino: ${origenSel.replace(' (origen)', '')}`);
     if (mercadoSel !== MERCADOS[0] && !mercadoSel.startsWith('Otro')) filtros.push(`Mercado objetivo: ${mercadoSel}`);
     if (canalSel !== CANALES[0]) filtros.push(`Canal objetivo: ${canalSel}`);
     if (cepaSel !== CEPAS[0]) filtros.push(`Cepa/tipo de vino: ${cepaSel}`);
@@ -193,7 +196,11 @@ export default function Home() {
 
           <div>
             <p className="text-[11px] uppercase tracking-[0.15em] text-alb-mid font-semibold mb-2">Foco del análisis</p>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+              <select value={origenSel} onChange={e => setOrigenSel(e.target.value)}
+                className="border border-gray-300 rounded-xl px-3 py-2 text-sm bg-white cursor-pointer focus:outline-none focus:border-vino">
+                {ORIGENES.map(o => <option key={o} value={o}>{o}</option>)}
+              </select>
               <select value={mercadoSel} onChange={e => setMercadoSel(e.target.value)}
                 className="border border-gray-300 rounded-xl px-3 py-2 text-sm bg-white cursor-pointer focus:outline-none focus:border-vino">
                 {MERCADOS.map(m => <option key={m} value={m}>{m === 'Global' ? 'Mercado: Global' : m}</option>)}

@@ -124,8 +124,10 @@ export async function ejecutarAgente(modo: Modo, consulta: string, perfil: Perfi
 
   const resp = await anthropic.messages.create(req);
   const texto = resp.content.filter((b: any) => b.type === 'text').map((b: any) => b.text).join('\n');
-  const informe = texto.replace(/```json[\s\S]*?```\s*$/, '').trim();
-  const guardado = await persistir(extraerJSON(texto), modo, informe);
+  const datos = extraerJSON(texto);
+  // Eliminar TODO bloque json del informe visible (el modelo a veces no lo deja al final).
+  const informe = texto.replace(/```json[\s\S]*?```/g, '').trim();
+  const guardado = await persistir(datos, modo, informe);
 
   const resultado: ResultadoAgente = {
     informe_md: informe || texto,
