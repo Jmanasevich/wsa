@@ -60,6 +60,21 @@ create table if not exists consultas (
   duracion_ms int
 );
 
+create table if not exists conocimiento (
+  id uuid default gen_random_uuid() primary key,
+  created_at timestamptz default now(),
+  tipo text not null default 'nota',              -- exportaciones|sell_out|precios|informe_pagado|benchmark|nota
+  titulo text not null,
+  contenido text not null,
+  mercado text,
+  cepa text,
+  fuente text,
+  fecha_dato date,
+  activo boolean not null default true
+);
+create index if not exists idx_conocimiento_activo on conocimiento(activo, fecha_dato);
+alter table conocimiento enable row level security;
+
 create index if not exists idx_oportunidades_estado on oportunidades(estado);
 create index if not exists idx_ventanas_cierre on ventanas(estado, fecha_cierre);
 create index if not exists idx_senales_estado on senales(estado, proxima_revision);

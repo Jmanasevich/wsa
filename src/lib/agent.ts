@@ -50,6 +50,41 @@ async function contextoDeTrabajo(): Promise<string> {
   return 'MEMORIA DE TRABAJO ACTUAL (fecha ' + hoy + '):\n\n' + partes.join('\n\n');
 }
 
+// ---------- Base de conocimiento interna ----------
+async function conocimientoRelevante(consulta: string): Promise<string> {
+  try {
+    const { data } = await db().from('conocimiento')
+      .select('tipo,titulo,contenido,mercado,cepa,fuente,fecha_dato')
+      .eq('activo', true)
+      .order('fecha_dato', { ascending: false, nullsFirst: false })
+      .limit(60);
+    if (!data?.length) return '';
+    const texto = consulta.toLowerCase();
+    const puntaje = (d: any) => {
+      let s = 0;
+      if (d.mercado && texto.includes(String(d.mercado).toLowerCase())) s += 3;
+      if (d.cepa && texto.includes(String(d.cepa).toLowerCase())) s += 3;
+      for (const w of String(d.titulo).toLowerCase().split(/[^a-záéíóúñü0-9]+/)) {
+        if (w.length > 3 && texto.includes(w)) s += 1;
+      }
+      return s;
+    };
+    const orden = data.map((d, i) => ({ d, s: puntaje(d), i })).sort((a, b) => b.s - a.s || a.i - b.i);
+    const seleccion = orden.filter((x, idx) => x.s > 0 || idx < 4).slice(0, 10);
+    let presupuesto = 14000;
+    const partes: string[] = [];
+    for (const { d } of seleccion) {
+      const bloque = `### [${d.tipo ?? 'nota'}] ${d.titulo} (${d.fuente ?? 'fuente interna'}, ${d.fecha_dato ?? 's/fecha'})` +
+        `${d.mercado ? ' · ' + d.mercado : ''}${d.cepa ? ' · ' + d.cepa : ''}\n${String(d.contenido).slice(0, 2200)}`;
+      if (presupuesto - bloque.length < 0) break;
+      presupuesto -= bloque.length;
+      partes.push(bloque);
+    }
+    if (!partes.length) return '';
+    return 'BASE DE CONOCIMIENTO INTERNA (datos cargados por el usuario: extractos Nielsen/IWSR, estadísticas de exportación, listas de precios, notas). Trátalos como dato [verificado: interno + fuente + fecha], priorízalos sobre estimaciones propias y crúzalos con lo que encuentres en la web:\n\n' + partes.join('\n\n');
+  } catch { return ''; }
+}
+
 // ---------- Persistencia de la salida estructurada ----------
 function extraerJSON(texto: string): any | null {
   const m = texto.match(/```json\s*([\s\S]*?)```/g);
@@ -106,9 +141,9 @@ const PERFILES: Record<Perfil, string> = {
 export async function ejecutarAgente(modo: Modo, consulta: string, perfil: Perfil, verificarWeb = true): Promise<ResultadoAgente> {
   const inicio = Date.now();
   const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-  const memoria = await contextoDeTrabajo();
+  const [memoria, conocimiento] = await Promise.all([contextoDeTrabajo(), conocimientoRelevante(consulta)]);
 
-  const system = [promptMaestro(), memoria, INSTRUCCION_SALIDA_JSON].join('\n\n---\n\n');
+  const system = [promptMaestro(), conocimiento, memoria, INSTRUCCION_SALIDA_JSON].filter(Boolean).join('\n\n---\n\n');
   const etiquetaModo = { radar: 'RADAR', deep_dive: 'DEEP-DIVE', deal: 'DEAL', defensa: 'DEFENSA' }[modo];
   const user = `[MODO: ${etiquetaModo}] [PERFIL: ${PERFILES[perfil]}]\n\n${consulta}`;
 

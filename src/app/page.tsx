@@ -21,6 +21,15 @@ const PERFILES = [
 
 const ESTADOS = ['nueva', 'validada', 'en_piloto', 'ejecutada', 'archivada'];
 
+const TIPOS_KB: [string, string][] = [
+  ['exportaciones', 'Estadísticas de exportación'],
+  ['sell_out', 'Sell-out (Nielsen / monopolio)'],
+  ['precios', 'Precios / cotizaciones'],
+  ['informe_pagado', 'Informe de pago (IWSR, Circana…)'],
+  ['benchmark', 'Benchmark'],
+  ['nota', 'Nota interna'],
+];
+
 const ORIGENES = ['Origen: Chile', 'Argentina', 'España', 'Italia', 'Francia', 'EE.UU. (origen)', 'Australia', 'Nueva Zelanda', 'Sudáfrica', 'Portugal', 'Uruguay', 'Otro origen (indicar en la consulta)'];
 const MERCADOS = ['Global', 'EE.UU.', 'Reino Unido', 'Brasil', 'China', 'Japón', 'Corea del Sur', 'Canadá', 'México', 'Suecia', 'Noruega', 'Finlandia', 'Alemania', 'Países Bajos', 'Irlanda', 'Otro (indicar en la consulta)'];
 const CANALES = ['Todos los canales', 'Retail / Off-trade', 'Monopolio estatal', 'On-trade / HORECA', 'E-commerce / DTC', 'Private label', 'Granel'];
@@ -41,6 +50,10 @@ export default function Home() {
   const [informe, setInforme] = useState('');
   const [meta, setMeta] = useState('');
   const [pipeline, setPipeline] = useState<any>(null);
+  const [kb, setKb] = useState<any[]>([]);
+  const [verKB, setVerKB] = useState(false);
+  const [kbForm, setKbForm] = useState({ tipo: 'nota', titulo: '', mercado: '', cepa: '', fuente: '', fecha_dato: '', contenido: '' });
+  const [kbMsg, setKbMsg] = useState('');
 
   const headers = (): Record<string, string> => {
     const h: Record<string, string> = { 'Content-Type': 'application/json' };
@@ -55,7 +68,35 @@ export default function Home() {
     } catch { /* silencioso */ }
   };
 
-  useEffect(() => { cargarPipeline(); /* eslint-disable-next-line */ }, []);
+  const cargarKB = async () => {
+    try {
+      const r = await fetch('/api/conocimiento', { headers: headers() });
+      if (r.ok) setKb((await r.json()).items ?? []);
+    } catch { /* silencioso */ }
+  };
+
+  useEffect(() => { cargarPipeline(); cargarKB(); /* eslint-disable-next-line */ }, []);
+
+  const guardarKB = async () => {
+    setKbMsg('');
+    if (!kbForm.titulo.trim() || !kbForm.contenido.trim()) { setKbMsg('Título y contenido son obligatorios.'); return; }
+    const r = await fetch('/api/conocimiento', {
+      method: 'POST', headers: headers(),
+      body: JSON.stringify({ ...kbForm, fecha_dato: kbForm.fecha_dato || null }),
+    });
+    if (r.ok) {
+      setKbForm({ tipo: 'nota', titulo: '', mercado: '', cepa: '', fuente: '', fecha_dato: '', contenido: '' });
+      setKbMsg('Guardado. El agente lo usará en las próximas consultas.');
+      cargarKB();
+    } else {
+      setKbMsg((await r.json())?.error || 'Error al guardar');
+    }
+  };
+
+  const toggleKB = async (id: string, activo: boolean) => {
+    await fetch('/api/conocimiento', { method: 'PATCH', headers: headers(), body: JSON.stringify({ id, activo }) });
+    cargarKB();
+  };
 
   const docReporte = (cuerpo: string, extraHead = '') => `<!doctype html><html lang="es"><head><meta charset="utf-8"><title>CWG-IA — Informe</title>${extraHead}
       <style>body{font-family:Georgia,serif;max-width:860px;margin:2rem auto;padding:0 1rem;color:#2C3A42;line-height:1.55}
@@ -233,6 +274,64 @@ export default function Home() {
             {meta && !cargando && <span className="text-xs text-alb-mid">{meta}</span>}
           </div>
           {error && <p className="text-sm text-red-700 bg-red-50 border border-red-100 rounded-xl px-4 py-2.5">{error}</p>}
+        </section>
+
+        {/* Base de conocimiento */}
+        <section className="card p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="font-bold text-alb-primary tracking-wide">Base de conocimiento</h2>
+              <p className="text-xs text-alb-mid mt-0.5">Datos propios que el agente usa en cada consulta: extractos Nielsen/IWSR, estadísticas de exportación, listas de precios, notas de negociación. {kb.length ? `${kb.filter((x: any) => x.activo).length} activos de ${kb.length}.` : 'Aún vacía.'}</p>
+            </div>
+            <button onClick={() => setVerKB(!verKB)} className="text-xs font-medium border border-gray-300 rounded-lg px-3.5 py-1.5 hover:border-vino hover:text-vino transition-colors whitespace-nowrap">
+              {verKB ? 'Ocultar' : 'Cargar / ver datos'}
+            </button>
+          </div>
+
+          {verKB && (
+            <div className="mt-5 space-y-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                <select value={kbForm.tipo} onChange={e => setKbForm({ ...kbForm, tipo: e.target.value })}
+                  className="border border-gray-300 rounded-xl px-3 py-2 text-sm bg-white">
+                  {TIPOS_KB.map(([v, n]) => <option key={v} value={v}>{n}</option>)}
+                </select>
+                <input value={kbForm.titulo} onChange={e => setKbForm({ ...kbForm, titulo: e.target.value })} placeholder="Título *"
+                  className="border border-gray-300 rounded-xl px-3 py-2 text-sm sm:col-span-2" />
+                <input value={kbForm.mercado} onChange={e => setKbForm({ ...kbForm, mercado: e.target.value })} placeholder="Mercado (ej: Suecia)"
+                  className="border border-gray-300 rounded-xl px-3 py-2 text-sm" />
+                <input value={kbForm.cepa} onChange={e => setKbForm({ ...kbForm, cepa: e.target.value })} placeholder="Cepa (opcional)"
+                  className="border border-gray-300 rounded-xl px-3 py-2 text-sm" />
+                <input value={kbForm.fuente} onChange={e => setKbForm({ ...kbForm, fuente: e.target.value })} placeholder="Fuente (ej: Nielsen jun-26)"
+                  className="border border-gray-300 rounded-xl px-3 py-2 text-sm" />
+                <input type="date" value={kbForm.fecha_dato} onChange={e => setKbForm({ ...kbForm, fecha_dato: e.target.value })}
+                  className="border border-gray-300 rounded-xl px-3 py-2 text-sm" />
+              </div>
+              <textarea value={kbForm.contenido} onChange={e => setKbForm({ ...kbForm, contenido: e.target.value })} rows={5}
+                placeholder="Pegue aquí el dato: tabla CSV, extracto del informe, cifras, texto… *"
+                className="w-full border border-gray-300 rounded-xl p-3 text-sm bg-[#FBFAF8] focus:outline-none focus:border-vino" />
+              <div className="flex items-center gap-3">
+                <button onClick={guardarKB} className="btn-primary !px-5 !py-2 text-sm">Guardar en la base</button>
+                {kbMsg && <span className="text-xs text-alb-mid">{kbMsg}</span>}
+              </div>
+
+              {!!kb.length && (
+                <div className="border-t pt-3 space-y-1.5" style={{ borderColor: 'var(--card-border)' }}>
+                  {kb.map((x: any) => (
+                    <div key={x.id} className={`flex items-center gap-3 text-sm rounded-lg px-3 py-2 ${x.activo ? 'bg-[#FBFAF8]' : 'bg-gray-50 opacity-60'}`}>
+                      <span className="badge badge-nueva">{TIPOS_KB.find(([v]) => v === x.tipo)?.[1] ?? x.tipo}</span>
+                      <span className="font-medium flex-1 truncate">{x.titulo}</span>
+                      {x.mercado && <span className="text-xs text-alb-mid">{x.mercado}</span>}
+                      {x.fuente && <span className="text-xs text-alb-mid truncate max-w-[160px]">({x.fuente}{x.fecha_dato ? `, ${x.fecha_dato}` : ''})</span>}
+                      <label className="flex items-center gap-1 text-xs text-alb-mid cursor-pointer whitespace-nowrap">
+                        <input type="checkbox" className="accent-[#722F37]" checked={x.activo} onChange={e => toggleKB(x.id, e.target.checked)} />
+                        activo
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </section>
 
         {/* Informe */}
