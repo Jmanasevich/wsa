@@ -1,0 +1,22 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --alb-primary: #46525A;
+  --alb-orange: #F26722;
+  --vino: #722F37;
+}
+
+.informe h1 { @apply text-2xl font-bold text-vino-deep mt-6 mb-3; }
+.informe h2 { @apply text-xl font-bold text-alb-primary mt-5 mb-2; }
+.informe h3 { @apply text-lg font-semibold text-alb-primary mt-4 mb-2; }
+.informe p { @apply my-2 leading-relaxed; }
+.informe ul, .informe ol { @apply my-2 ml-6 list-disc; }
+.informe ol { @apply list-decimal; }
+.informe table { @apply w-full text-sm my-3 border-collapse; }
+.informe th { @apply bg-alb-primary text-white text-left px-2 py-1.5; }
+.informe td { @apply border-b border-gray-200 px-2 py-1.5 align-top; }
+.informe blockquote { @apply border-l-4 border-vino pl-3 italic text-gray-600 my-3; }
+.informe strong { @apply text-alb-primary; }
+.informe a { @apply text-vino underline; }
