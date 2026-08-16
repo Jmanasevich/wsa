@@ -75,6 +75,16 @@ create table if not exists conocimiento (
 create index if not exists idx_conocimiento_activo on conocimiento(activo, fecha_dato);
 alter table conocimiento enable row level security;
 
+create table if not exists vinas (
+  id uuid default gen_random_uuid() primary key,
+  created_at timestamptz default now(),
+  nombre text not null unique,
+  perfil text not null default 'B',               -- A grande | B mediana | C boutique
+  pais text not null default 'Chile',
+  activo boolean not null default true
+);
+alter table vinas enable row level security;
+
 create index if not exists idx_oportunidades_estado on oportunidades(estado);
 create index if not exists idx_ventanas_cierre on ventanas(estado, fecha_cierre);
 create index if not exists idx_senales_estado on senales(estado, proxima_revision);

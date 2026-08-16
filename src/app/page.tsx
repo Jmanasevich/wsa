@@ -50,6 +50,8 @@ export default function Home() {
   const [informe, setInforme] = useState('');
   const [meta, setMeta] = useState('');
   const [pipeline, setPipeline] = useState<any>(null);
+  const [vinas, setVinas] = useState<any[]>([]);
+  const [vinaSel, setVinaSel] = useState('');
   const [kb, setKb] = useState<any[]>([]);
   const [verKB, setVerKB] = useState(false);
   const [kbForm, setKbForm] = useState({ tipo: 'nota', titulo: '', mercado: '', cepa: '', fuente: '', fecha_dato: '', contenido: '' });
@@ -75,7 +77,20 @@ export default function Home() {
     } catch { /* silencioso */ }
   };
 
-  useEffect(() => { cargarPipeline(); cargarKB(); /* eslint-disable-next-line */ }, []);
+  const cargarVinas = async () => {
+    try {
+      const r = await fetch('/api/vinas', { headers: headers() });
+      if (r.ok) setVinas((await r.json()).items ?? []);
+    } catch { /* silencioso */ }
+  };
+
+  useEffect(() => { cargarPipeline(); cargarKB(); cargarVinas(); /* eslint-disable-next-line */ }, []);
+
+  const elegirVina = (nombre: string) => {
+    setVinaSel(nombre);
+    const v = vinas.find((x: any) => x.nombre === nombre);
+    if (v?.perfil && ['A', 'B', 'C'].includes(v.perfil)) setPerfil(v.perfil);
+  };
 
   const guardarKB = async () => {
     setKbMsg('');
@@ -131,6 +146,7 @@ export default function Home() {
       <div class="spin"></div><h2 style="color:#722F37;margin:0 0 6px">Generando informe…</h2>
       <p style="color:#8B9AA3;font-size:.9rem">Barriendo fuentes, validando hipótesis y armando el entregable.<br/>Esto toma entre 1 y 4 minutos. No cierre esta pestaña.</p></div>`));
     const filtros: string[] = [];
+    if (vinaSel) filtros.push(`Viña analizada: ${vinaSel} (Chile)`);
     if (origenSel !== ORIGENES[0] && !origenSel.startsWith('Otro')) filtros.push(`País de origen del vino: ${origenSel.replace(' (origen)', '')}`);
     if (mercadoSel !== MERCADOS[0] && !mercadoSel.startsWith('Otro')) filtros.push(`Mercado objetivo: ${mercadoSel}`);
     if (canalSel !== CANALES[0]) filtros.push(`Canal objetivo: ${canalSel}`);
@@ -222,7 +238,12 @@ export default function Home() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2 pt-1 border-t" style={{ borderColor: 'var(--card-border)' }}>
-            <p className="text-[11px] uppercase tracking-[0.15em] text-alb-mid font-semibold w-full mt-3 mb-0.5">Tamaño de la viña</p>
+            <p className="text-[11px] uppercase tracking-[0.15em] text-alb-mid font-semibold w-full mt-3 mb-0.5">Viña y tamaño</p>
+            <select value={vinaSel} onChange={e => elegirVina(e.target.value)}
+              className="border border-gray-300 rounded-xl px-3 py-2 text-sm bg-white cursor-pointer focus:outline-none focus:border-vino min-w-[220px]">
+              <option value="">Viña: sin especificar (análisis genérico)</option>
+              {vinas.map((v: any) => <option key={v.id} value={v.nombre}>{v.nombre}</option>)}
+            </select>
             {PERFILES.map(([p, nombre]) => (
               <button key={p} onClick={() => setPerfil(p)}
                 className={`chip chip-sm ${perfil === p ? 'chip-orange-on' : 'chip-off'}`}>

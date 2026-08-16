@@ -149,7 +149,7 @@ export async function ejecutarAgente(modo: Modo, consulta: string, perfil: Perfi
 
   const req: Anthropic.MessageCreateParamsNonStreaming = {
     model: MODELO,
-    max_tokens: 8000,
+    max_tokens: 16000,
     system,
     messages: [{ role: 'user', content: user }],
   };
@@ -160,8 +160,8 @@ export async function ejecutarAgente(modo: Modo, consulta: string, perfil: Perfi
   const resp = await anthropic.messages.create(req);
   const texto = resp.content.filter((b: any) => b.type === 'text').map((b: any) => b.text).join('\n');
   const datos = extraerJSON(texto);
-  // Eliminar TODO bloque json del informe visible (el modelo a veces no lo deja al final).
-  const informe = texto.replace(/```json[\s\S]*?```/g, '').trim();
+  // Eliminar TODO bloque json del informe visible, incluido uno truncado por tope de tokens.
+  const informe = texto.replace(/```json[\s\S]*?```/g, '').replace(/```json[\s\S]*$/, '').trim();
   const guardado = await persistir(datos, modo, informe);
 
   const resultado: ResultadoAgente = {
