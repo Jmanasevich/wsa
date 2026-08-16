@@ -17,7 +17,7 @@ const ESTADOS = ['nueva', 'validada', 'en_piloto', 'ejecutada', 'archivada'];
 
 export default function Home() {
   const [modo, setModo] = useState<Modo>('radar');
-  const [perfil, setPerfil] = useState<'A' | 'B'>('A');
+  const [perfil, setPerfil] = useState<'A' | 'B' | 'C'>('A');
   const [verificar, setVerificar] = useState(true);
   const [consulta, setConsulta] = useState('');
   const [token, setToken] = useState('');
@@ -117,10 +117,10 @@ export default function Home() {
               </button>
             ))}
             <span className="mx-2 border-l border-gray-200" />
-            {(['A', 'B'] as const).map(p => (
+            {([['A', 'Viña grande'], ['B', 'Viña mediana'], ['C', 'Viña boutique']] as const).map(([p, nombre]) => (
               <button key={p} onClick={() => setPerfil(p)}
                 className={`px-3 py-1.5 rounded-full text-xs font-medium border ${perfil === p ? 'bg-alb-orange text-white border-alb-orange' : 'bg-white text-alb-primary border-gray-300'}`}>
-                {p === 'A' ? 'Perfil A · Tier-1' : 'Perfil B · Viña media'}
+                {nombre}
               </button>
             ))}
             <label className="flex items-center gap-1.5 text-xs text-alb-mid ml-auto cursor-pointer">

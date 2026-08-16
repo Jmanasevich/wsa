@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { ejecutarAgente, Modo } from '@/lib/agent';
+import { ejecutarAgente, Modo, Perfil } from '@/lib/agent';
 import { autorizado, noAutorizado } from '@/lib/auth';
 
 export const maxDuration = 300;
@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
   const consulta = typeof body?.consulta === 'string' && body.consulta.trim()
     ? body.consulta.trim().slice(0, 4000)
     : 'Ejecuta un radar global: entrega el ranking de 3-5 movimientos priorizados.';
-  const perfil = body?.perfil === 'B' ? 'B' : 'A';
+  const perfil: Perfil = ['A', 'B', 'C'].includes(body?.perfil) ? body.perfil : 'A';
   const verificarWeb = body?.verificar !== false;
 
   try {

@@ -96,14 +96,21 @@ async function persistir(data: any, modo: Modo, informe: string) {
 }
 
 // ---------- Ejecución principal ----------
-export async function ejecutarAgente(modo: Modo, consulta: string, perfil: 'A' | 'B', verificarWeb = true): Promise<ResultadoAgente> {
+export type Perfil = 'A' | 'B' | 'C';
+const PERFILES: Record<Perfil, string> = {
+  A: 'A (Grande/Tier-1: marcas globales, distribución propia)',
+  B: 'B (Mediana: exporta vía importadores, marca con tracción)',
+  C: 'C (Boutique/pequeña: volumen limitado, nichos de alto margen)',
+};
+
+export async function ejecutarAgente(modo: Modo, consulta: string, perfil: Perfil, verificarWeb = true): Promise<ResultadoAgente> {
   const inicio = Date.now();
   const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
   const memoria = await contextoDeTrabajo();
 
   const system = [promptMaestro(), memoria, INSTRUCCION_SALIDA_JSON].join('\n\n---\n\n');
   const etiquetaModo = { radar: 'RADAR', deep_dive: 'DEEP-DIVE', deal: 'DEAL', defensa: 'DEFENSA' }[modo];
-  const user = `[MODO: ${etiquetaModo}] [PERFIL: ${perfil === 'A' ? 'A (Tier-1)' : 'B (viña media/boutique)'}]\n\n${consulta}`;
+  const user = `[MODO: ${etiquetaModo}] [PERFIL: ${PERFILES[perfil]}]\n\n${consulta}`;
 
   const req: Anthropic.MessageCreateParamsNonStreaming = {
     model: MODELO,
