@@ -88,7 +88,18 @@ export default function Home() {
 
   useEffect(() => { cargarPipeline(); cargarKB(); cargarVinas(); /* eslint-disable-next-line */ }, []);
 
-  const elegirVina = (nombre: string) => {
+  const elegirVina = async (nombre: string) => {
+    if (nombre === '__nueva__') {
+      const nueva = prompt('Nombre de la viña a agregar:')?.trim();
+      if (!nueva) return;
+      const r = await fetch('/api/vinas', {
+        method: 'POST', headers: headers(),
+        body: JSON.stringify({ nombre: nueva, perfil }),
+      });
+      if (r.ok) { await cargarVinas(); setVinaSel(nueva); }
+      else alert((await r.json())?.error || 'No se pudo agregar la viña');
+      return;
+    }
     setVinaSel(nombre);
     const v = vinas.find((x: any) => x.nombre === nombre);
     if (v?.perfil && ['A', 'B', 'C'].includes(v.perfil)) setPerfil(v.perfil);
@@ -245,6 +256,7 @@ export default function Home() {
               className="border border-gray-300 rounded-xl px-3 py-2 text-sm bg-white cursor-pointer focus:outline-none focus:border-vino min-w-[220px]">
               <option value="">Viña: sin especificar (análisis genérico)</option>
               {vinas.map((v: any) => <option key={v.id} value={v.nombre}>{v.nombre}</option>)}
+              <option value="__nueva__">＋ Agregar viña…</option>
             </select>
             {PERFILES.map(([p, nombre]) => (
               <button key={p} onClick={() => setPerfil(p)}
