@@ -120,6 +120,31 @@ async function embarquesPorVina(consulta: string): Promise<string> {
   } catch { return ''; }
 }
 
+async function compradoresYpremios(consulta: string): Promise<string> {
+  const partes: string[] = [];
+  const t = consulta.toLowerCase();
+  const MAP: [string, string][] = [['ee.uu', 'EE.UU.'], ['estados unidos', 'EE.UU.'], ['reino unido', 'Reino Unido'], ['uk', 'Reino Unido'], ['brasil', 'Brasil'], ['china', 'China'], ['jap', 'Japon'], ['japon', 'Japon'], ['corea', 'Corea del Sur'], ['canad', 'Canada'], ['mexico', 'Mexico'], ['m\u00e9xico', 'Mexico'], ['suecia', 'Suecia'], ['noruega', 'Noruega'], ['finlandia', 'Finlandia'], ['alemania', 'Alemania'], ['irlanda', 'Irlanda'], ['pa\u00edses bajos', 'Paises Bajos'], ['holanda', 'Paises Bajos']];
+  try {
+    const merc = MAP.find(([k]) => t.includes(k))?.[1];
+    let q = db().from('compradores').select('mercado,nombre,tipo,portafolio,canal,nota').eq('activo', true);
+    if (merc) {
+      const { data } = await db().from('compradores').select('mercado,nombre,tipo,portafolio,canal,nota').eq('activo', true).ilike('mercado', merc.replace('Paises', 'Pa%ses').replace('Japon', 'Jap%n').replace('Canada', 'Canad%').replace('Mexico', 'M%xico'));
+      if (data?.length) partes.push(`COMPRADORES REALES EN ${merc.toUpperCase()} (importadores/agentes/retailers activos; contactos y hueco de portafolio se confirman en la web). Usa estos nombres como contraparte concreta \u2014 NO inventes otros:\n` +
+        data.slice(0, 14).map(c => `- ${c.nombre} [${c.tipo}${c.canal ? ', ' + c.canal : ''}]${c.portafolio ? ': ' + c.portafolio : ''}${c.nota ? ' (' + c.nota + ')' : ''}`).join('\n'));
+    }
+  } catch { /* opcional */ }
+  try {
+    const { data } = await db().from('premios').select('jurado,productor,vino,cepa,puntaje,anio,mercado').order('anio', { ascending: false }).limit(40);
+    if (data?.length) {
+      const rel = data.filter(p => t.includes(String(p.productor ?? '').toLowerCase().split(' ')[0]) || t.includes(String(p.cepa ?? '').toLowerCase()) || (MAP.find(([k]) => t.includes(k)) && p.mercado && t.includes(String(p.mercado).toLowerCase())));
+      const uso = (rel.length ? rel : data).slice(0, 12);
+      partes.push('PREMIOS Y PUNTAJES RECIENTES [base interna]. Usa como palanca de listado o se\u00f1al competitiva:\n' +
+        uso.map(p => `- ${p.jurado} ${p.anio ?? ''}: ${p.vino ?? ''}${p.productor ? ' (' + p.productor + ')' : ''}${p.cepa ? ' \u00b7 ' + p.cepa : ''} \u2192 ${p.puntaje ?? ''}`).join('\n'));
+    }
+  } catch { /* opcional */ }
+  return partes.join('\n\n');
+}
+
 async function financierosRelevantes(consulta: string): Promise<string> {
   try {
     const t = consulta.toLowerCase();
@@ -273,11 +298,11 @@ const PERFILES: Record<Perfil, string> = {
 export async function ejecutarAgente(modo: Modo, consulta: string, perfil: Perfil, verificarWeb = true): Promise<ResultadoAgente> {
   const inicio = Date.now();
   const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-  const [memoria, conocimiento, embarques, porVina, mundo, financieros, fuentes] = await Promise.all([
-    contextoDeTrabajo(), conocimientoRelevante(consulta), embarquesResumen(consulta), embarquesPorVina(consulta), productoresMundo(consulta), financierosRelevantes(consulta), fuentesRelevantes(consulta),
+  const [memoria, conocimiento, embarques, porVina, mundo, financieros, compradores, fuentes] = await Promise.all([
+    contextoDeTrabajo(), conocimientoRelevante(consulta), embarquesResumen(consulta), embarquesPorVina(consulta), productoresMundo(consulta), financierosRelevantes(consulta), compradoresYpremios(consulta), fuentesRelevantes(consulta),
   ]);
 
-  const system = [promptMaestro(), embarques, porVina, mundo, financieros, fuentes, conocimiento, memoria, INSTRUCCION_SALIDA_JSON].filter(Boolean).join('\n\n---\n\n');
+  const system = [promptMaestro(), embarques, porVina, mundo, financieros, compradores, fuentes, conocimiento, memoria, INSTRUCCION_SALIDA_JSON].filter(Boolean).join('\n\n---\n\n');
   const etiquetaModo = {
     radar: 'RADAR', deep_dive: 'DEEP-DIVE', deal: 'DEAL', defensa: 'DEFENSA',
     gancho: 'DIAGNÓSTICO EJECUTIVO (informe de conquista para un GG; sigue [MODO GANCHO])', competidor: 'COMPETIDOR (vigilancia de un actor)',
