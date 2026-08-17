@@ -5,7 +5,7 @@ import { autorizado, noAutorizado } from '@/lib/auth';
 export const maxDuration = 300;
 export const dynamic = 'force-dynamic';
 
-const MODOS: Modo[] = ['radar', 'deep_dive', 'deal', 'defensa', 'gancho', 'competidor'];
+const MODOS: Modo[] = ['radar', 'deep_dive', 'deal', 'defensa', 'gancho', 'competidor', 'comparativo'];
 
 export async function POST(req: NextRequest) {
   if (!autorizado(req)) return noAutorizado();

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { marked } from 'marked';
 
-type Modo = 'radar' | 'deep_dive' | 'deal' | 'defensa' | 'gancho' | 'competidor';
+type Modo = 'radar' | 'deep_dive' | 'deal' | 'defensa' | 'gancho' | 'competidor' | 'comparativo';
 
 const MODOS: { id: Modo; nombre: string; hint: string; ph: string }[] = [
   { id: 'radar', nombre: 'Radar', hint: 'Barrido amplio de mercados y canales. Devuelve un ranking de 3-5 oportunidades priorizadas con score y contraparte.', ph: 'Opcional: acote el radar (ej: "solo Asia" o "solo NoLo y espumoso"). Vacío = radar global.' },
@@ -13,6 +13,7 @@ const MODOS: { id: Modo; nombre: string; hint: string; ph: string }[] = [
   { id: 'defensa', nombre: 'Defensa', hint: 'Detecta dónde la viña está perdiendo participación o margen hoy, qué competidor lo causa y cómo responder.', ph: 'Describa dónde sospecha pérdida de share o margen (mercado, canal, marca)…' },
   { id: 'gancho', nombre: 'Diagnóstico Ejecutivo', hint: 'Informe para presentar a un gerente general: qué embarca su viña hoy, las brechas de valor cuantificadas, una ventana concreta con fecha y la propuesta de piloto de 90 días.', ph: 'Seleccione la viña arriba. Opcional: foco (mercado o categoría) y contexto de la reunión…' },
   { id: 'competidor', nombre: 'Competidor', hint: 'Vigila a un competidor chileno o extranjero: portafolio, precios por mercado, movimientos recientes fechados y la jugada de respuesta.', ph: 'Nombre del competidor (viña, grupo o marca; chileno o extranjero) + foco opcional (mercado, categoría)…' },
+  { id: 'comparativo', nombre: 'Comparativo de Ventas', hint: 'Compara desempeño de ventas entre viñas, mercados, canales, cepas, formatos o períodos: tabla central con cifras, precios medios, crecimiento y las brechas accionables.', ph: 'Defina la comparación: ej. "Concha y Toro vs San Pedro en UK", "Brasil vs México vs Japón", "BiB vs botella en los nórdicos", "Carmenère vs Malbec en EE.UU."…' },
 ];
 
 const PERFILES = [

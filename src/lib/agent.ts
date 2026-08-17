@@ -4,7 +4,7 @@ import { promptMaestro, INSTRUCCION_SALIDA_JSON } from './prompt';
 
 const MODELO = process.env.CWGIA_MODEL || 'claude-sonnet-4-6';
 
-export type Modo = 'radar' | 'deep_dive' | 'deal' | 'defensa' | 'gancho' | 'competidor';
+export type Modo = 'radar' | 'deep_dive' | 'deal' | 'defensa' | 'gancho' | 'competidor' | 'comparativo';
 
 export interface ResultadoAgente {
   informe_md: string;
@@ -208,6 +208,7 @@ export async function ejecutarAgente(modo: Modo, consulta: string, perfil: Perfi
   const etiquetaModo = {
     radar: 'RADAR', deep_dive: 'DEEP-DIVE', deal: 'DEAL', defensa: 'DEFENSA',
     gancho: 'DIAGNÓSTICO EJECUTIVO (informe de conquista para un GG; sigue [MODO GANCHO])', competidor: 'COMPETIDOR (vigilancia de un actor)',
+    comparativo: 'COMPARATIVO DE VENTAS (sigue [MODO COMPARATIVO])',
   }[modo];
   const user = `[MODO: ${etiquetaModo}] [PERFIL: ${PERFILES[perfil]}]\n\n${consulta}`;
 
