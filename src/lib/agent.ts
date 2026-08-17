@@ -120,6 +120,28 @@ async function embarquesPorVina(consulta: string): Promise<string> {
   } catch { return ''; }
 }
 
+async function productoresMundo(consulta: string): Promise<string> {
+  try {
+    const t = consulta.toLowerCase();
+    const PAISES = ['francia', 'italia', 'espana', 'ee.uu', 'estados unidos', 'argentina', 'australia', 'sudafrica', 'alemania', 'portugal', 'nueva zelanda'];
+    const nombra = PAISES.some(p => t.includes(p)) || t.includes('competidor') || t.includes('productor') || t.includes('mundo');
+    if (!nombra) return '';
+    const { data } = await db().from('productores').select('pais,nombre,grupo,marcas,segmento,revenue_musd').limit(200);
+    if (!data?.length) return '';
+    const paisPedido = PAISES.find(p => t.includes(p));
+    const mapa: Record<string, string> = { 'espana': 'Espana', 'sudafrica': 'Sudafrica', 'estados unidos': 'EE.UU.', 'ee.uu': 'EE.UU.' };
+    let filtradas = data;
+    if (paisPedido) {
+      const canon = mapa[paisPedido] || (paisPedido.charAt(0).toUpperCase() + paisPedido.slice(1));
+      const sel = data.filter(d => d.pais.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '') === canon.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''));
+      if (sel.length) filtradas = sel;
+    }
+    const lineas = filtradas.slice(0, 40).map(d =>
+      `- [${d.pais}] ${d.nombre}${d.grupo && d.grupo !== d.nombre ? ' (grupo ' + d.grupo + ')' : ''}: ${d.marcas ?? ''}${d.segmento ? ' \u2014 ' + d.segmento : ''}${d.revenue_musd ? ` [facturacion grupo ~US$ ${(Number(d.revenue_musd) / 1000).toFixed(1)}B, estimacion publica]` : ''}`);
+    return 'DIRECTORIO DE PRODUCTORES DEL MUNDO (top vinas por pais; usalo para el modo Competidor y contexto competitivo). La facturacion es de GRUPO y orden de magnitud publico \u2014 verificala/actualizala en la web; NO es venta por mercado:\n' + lineas.join('\n');
+  } catch { return ''; }
+}
+
 async function fuentesRelevantes(consulta: string): Promise<string> {
   try {
     const { data } = await db().from('fuentes').select('tipo,nombre,mercado,url,descripcion')
@@ -227,11 +249,11 @@ const PERFILES: Record<Perfil, string> = {
 export async function ejecutarAgente(modo: Modo, consulta: string, perfil: Perfil, verificarWeb = true): Promise<ResultadoAgente> {
   const inicio = Date.now();
   const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-  const [memoria, conocimiento, embarques, porVina, fuentes] = await Promise.all([
-    contextoDeTrabajo(), conocimientoRelevante(consulta), embarquesResumen(consulta), embarquesPorVina(consulta), fuentesRelevantes(consulta),
+  const [memoria, conocimiento, embarques, porVina, mundo, fuentes] = await Promise.all([
+    contextoDeTrabajo(), conocimientoRelevante(consulta), embarquesResumen(consulta), embarquesPorVina(consulta), productoresMundo(consulta), fuentesRelevantes(consulta),
   ]);
 
-  const system = [promptMaestro(), embarques, porVina, fuentes, conocimiento, memoria, INSTRUCCION_SALIDA_JSON].filter(Boolean).join('\n\n---\n\n');
+  const system = [promptMaestro(), embarques, porVina, mundo, fuentes, conocimiento, memoria, INSTRUCCION_SALIDA_JSON].filter(Boolean).join('\n\n---\n\n');
   const etiquetaModo = {
     radar: 'RADAR', deep_dive: 'DEEP-DIVE', deal: 'DEAL', defensa: 'DEFENSA',
     gancho: 'DIAGNÓSTICO EJECUTIVO (informe de conquista para un GG; sigue [MODO GANCHO])', competidor: 'COMPETIDOR (vigilancia de un actor)',

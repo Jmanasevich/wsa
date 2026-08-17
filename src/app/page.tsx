@@ -58,7 +58,7 @@ export default function Home() {
   const [kb, setKb] = useState<any[]>([]);
   const [verKB, setVerKB] = useState(false);
   const [verCmp, setVerCmp] = useState(false);
-  const [cmpDim, setCmpDim] = useState<'vina' | 'mercado' | 'formato'>('vina');
+  const [cmpDim, setCmpDim] = useState<'vina' | 'mercado' | 'formato' | 'mundo'>('vina');
   const [cmpVina, setCmpVina] = useState('');
   const [cmpMercado, setCmpMercado] = useState('');
   const [cmp, setCmp] = useState<any>(null);
@@ -158,7 +158,7 @@ export default function Home() {
   };
 
   const fmtUSD = (n: number) => n >= 1e6 ? `US$ ${(n / 1e6).toFixed(1)}M` : `US$ ${(n / 1e3).toFixed(0)}K`;
-  const DIMS: [string, string][] = [['vina', 'Entre viñas'], ['mercado', 'Entre mercados'], ['formato', 'Entre formatos']];
+  const DIMS: [string, string][] = [['vina', 'Entre viñas (Chile)'], ['mercado', 'Entre mercados'], ['formato', 'Entre formatos'], ['mundo', 'Productores del mundo']];
 
   const docReporte = (cuerpo: string, extraHead = '') => `<!doctype html><html lang="es"><head><meta charset="utf-8"><title>CWG-IA — Informe</title>${extraHead}
       <style>body{font-family:Georgia,serif;max-width:860px;margin:2rem auto;padding:0 1rem;color:#2C3A42;line-height:1.55}
@@ -395,7 +395,36 @@ export default function Home() {
                 </button>
               </div>
 
-              {cmp?.filas && (
+              {cmp?.filas && cmp.mundo && (
+                <div className="overflow-x-auto">
+                  <div className="text-xs text-alb-mid mb-2">{cmp.n} productores · directorio de referencia</div>
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-left text-[11px] uppercase tracking-wider text-alb-mid border-b" style={{ borderColor: 'var(--card-border)' }}>
+                        <th className="py-2 pr-3 font-semibold">Productor</th>
+                        <th className="pr-3 font-semibold">País</th>
+                        <th className="pr-3 font-semibold">Marcas clave</th>
+                        <th className="pr-3 font-semibold">Segmento</th>
+                        <th className="pr-3 font-semibold text-right">Facturación grupo</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {cmp.filas.map((f: any) => (
+                        <tr key={f.pais + f.clave} className="border-b align-top hover:bg-[#FBFAF8]" style={{ borderColor: 'var(--card-border)' }}>
+                          <td className="py-2 pr-3 font-medium text-alb-text">{f.clave}{f.grupo && f.grupo !== f.clave && <span className="text-xs text-alb-mid"> · {f.grupo}</span>}</td>
+                          <td className="pr-3 text-alb-mid">{f.pais}</td>
+                          <td className="pr-3 text-alb-mid max-w-[240px]">{f.marcas}</td>
+                          <td className="pr-3 text-alb-mid">{f.segmento}</td>
+                          <td className="pr-3 text-right">{f.revenue_musd ? `~US$ ${(f.revenue_musd / 1000).toFixed(1)}B` : '—'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  <p className="text-[11px] text-alb-mid mt-2">Facturación de GRUPO, orden de magnitud público — no es venta por mercado. Para ventas por mercado de una viña use el modo Competidor del agente.</p>
+                </div>
+              )}
+
+              {cmp?.filas && !cmp.mundo && (
                 <div className="overflow-x-auto">
                   <div className="text-xs text-alb-mid mb-2">{cmp.n} filas · total {fmtUSD(cmp.total_usd)} FOB · {cmp.periodo}</div>
                   <table className="w-full text-sm">

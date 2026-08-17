@@ -112,6 +112,15 @@ create table if not exists fuentes (
 );
 alter table fuentes enable row level security;
 
+create table if not exists productores (
+  id uuid default gen_random_uuid() primary key,
+  pais text not null, nombre text not null, grupo text, marcas text,
+  segmento text, revenue_musd numeric, fuente_rev text,
+  unique(pais, nombre)
+);
+create index if not exists idx_prod_pais on productores(pais);
+alter table productores enable row level security;
+
 create table if not exists embarques_vina (
   id bigint generated always as identity primary key,
   periodo text not null, vina text not null, mercado text not null,
