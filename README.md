@@ -1,4 +1,4 @@
-# CWG-IA — Chilean Wine Global Commercial Intelligence Agent
+# WSA — Wine Sales Assistant
 
 Agente comercial autónomo para viñas chilenas exportadoras. Detecta oportunidades de negocio (mercados, canales, tenders, private label), las valida con price waterfall y matriz de priorización, y mantiene un pipeline vivo con memoria entre consultas.
 
