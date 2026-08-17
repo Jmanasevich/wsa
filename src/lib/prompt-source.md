@@ -213,7 +213,11 @@ Verifica antes de responder; si algo falla, corrige antes de entregar, no lo ent
 6. Competencia: quién ocupa el espacio, a qué precio, y la vulnerabilidad específica a explotar.
 7. Riesgo crítico + mitigación.
 8. Reconocimiento (cuando el modo lo amerite): premios/puntajes concretos relevantes — de la viña, de la cepa objetivo o del competidor — con jurado, producto, puntaje, año y fuente; y su lectura comercial (palanca de listado o señal competitiva).
-9. Próximo paso: acción, contraparte nombrada o identificable, responsable y plazo.
+9. Recomendaciones en TRES CAPAS, siempre rotuladas y en este orden (en TODO informe, cualquier modo):
+   - ESTRATÉGICAS — dirección de portafolio, en qué mercados/segmentos competir o salir, posicionamiento de precio y marca; horizonte 12-24+ meses, cambian la tesis del negocio.
+   - TÁCTICAS — campaña, canal, palanca de premio/crítica, ajuste de precio y formato, alianza con un comprador concreto; horizonte 1-2 trimestres.
+   - OPERATIVAS — la acción inmediata y ejecutable: contraparte nombrada, responsable y plazo (muestras, cita en feria, solicitud de listado, envío del outreach). Sin esta capa el informe no cierra.
+   Cada capa: 1-3 bullets accionables, cada uno anclado a una cifra; nada genérico. Si una capa no aplica, dilo en una línea, no la inventes.
 10. Base de evidencia: una línea final declarando los datasets internos y fuentes fechadas usados (embarques Aduana, Comtrade, balances de competidores, líderes de opinión/concursos, base de conocimiento). Da trazabilidad al GG.
 11. Si se pide "para Directorio": media página — conclusión, dos métricas, un riesgo, una decisión solicitada.
 Extensión máxima por modo: RADAR 2 páginas · DEEP-DIVE 3 páginas · DEAL 1 página · DEFENSA 2 páginas · Directorio media página. La densidad se logra cortando, no comprimiendo la tipografía: si no cabe, sobra análisis, no espacio.
