@@ -160,6 +160,20 @@ export default function Home() {
   const fmtUSD = (n: number) => n >= 1e6 ? `US$ ${(n / 1e6).toFixed(1)}M` : `US$ ${(n / 1e3).toFixed(0)}K`;
   const DIMS: [string, string][] = [['vina', 'Entre viñas (Chile)'], ['mercado', 'Entre mercados'], ['formato', 'Entre formatos'], ['mundo', 'Productores del mundo']];
 
+  const [verFin, setVerFin] = useState(false);
+  const [fin, setFin] = useState<any>(null);
+  const [finCargando, setFinCargando] = useState(false);
+  const abrirFin = async () => {
+    const nuevo = !verFin; setVerFin(nuevo);
+    if (nuevo && !fin) {
+      setFinCargando(true);
+      try {
+        const r = await fetch('/api/financieros?lista=1', { headers: headers() });
+        if (r.ok) setFin(await r.json());
+      } catch { /* silencioso */ } finally { setFinCargando(false); }
+    }
+  };
+
   const docReporte = (cuerpo: string, extraHead = '') => `<!doctype html><html lang="es"><head><meta charset="utf-8"><title>CWG-IA — Informe</title>${extraHead}
       <style>body{font-family:Georgia,serif;max-width:860px;margin:2rem auto;padding:0 1rem;color:#2C3A42;line-height:1.55}
       .cab{font-family:Helvetica,Arial,sans-serif;border-bottom:3px solid #722F37;padding-bottom:10px;margin-bottom:20px}
@@ -456,6 +470,47 @@ export default function Home() {
                     </tbody>
                   </table>
                   <p className="text-[11px] text-alb-mid mt-2">Cobertura ~60% del vino chileno mapea a viña por nombre. Para análisis con recomendación use el modo Comparativo de Ventas del agente.</p>
+                </div>
+              )}
+            </div>
+          )}
+        </section>
+
+        {/* Vigilancia financiera */}
+        <section className="card p-6">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h2 className="font-bold text-alb-primary tracking-wide">Vigilancia financiera</h2>
+              <p className="text-xs text-alb-mid mt-0.5">Últimos balances y declaraciones de las viñas cotizadas (Chile y mundo) — ingresos, margen y lectura estratégica. Se refresca solo.</p>
+            </div>
+            <button onClick={abrirFin} className="text-xs font-medium border border-gray-300 rounded-lg px-3.5 py-1.5 hover:border-vino hover:text-vino transition-colors whitespace-nowrap">
+              {verFin ? 'Ocultar' : 'Ver balances'}
+            </button>
+          </div>
+          {verFin && (
+            <div className="mt-5">
+              {finCargando && <p className="text-xs text-alb-mid flex items-center gap-2"><span className="spinner" /> Cargando…</p>}
+              {fin && !fin.filas?.length && (
+                <p className="text-sm text-alb-mid">Aún sin balances leídos. El monitor rota una viña cotizada por día; vuelva mañana o dispare uno con el modo Competidor.</p>
+              )}
+              {!!fin?.filas?.length && (
+                <div className="space-y-3">
+                  <div className="text-xs text-alb-mid">{fin.leidas} de {fin.cotizadas?.length ?? '—'} viñas cotizadas leídas</div>
+                  {fin.filas.map((f: any) => (
+                    <div key={f.productor} className="rounded-xl p-4 border" style={{ borderColor: 'var(--card-border)', background: '#FBFAF8' }}>
+                      <div className="flex items-baseline justify-between gap-3 flex-wrap">
+                        <div className="font-semibold text-alb-primary">{f.productor} <span className="text-xs font-normal text-alb-mid">· {f.pais}</span></div>
+                        <div className="text-xs text-alb-mid">{f.periodo_reporte}{f.fecha_publicacion ? ` · ${f.fecha_publicacion}` : ''}</div>
+                      </div>
+                      <div className="flex gap-4 mt-1.5 text-sm flex-wrap">
+                        {f.ingresos_musd && <span><span className="text-alb-mid text-xs">Ingresos </span><span className="font-semibold" style={{ color: 'var(--vino)' }}>US$ {(f.ingresos_musd / 1000).toFixed(2)}B</span></span>}
+                        {f.margen_pct != null && <span><span className="text-alb-mid text-xs">Margen </span><span className="font-semibold">{f.margen_pct}%</span></span>}
+                      </div>
+                      <p className="text-sm text-alb-text mt-2 leading-relaxed">{f.resumen}</p>
+                      {f.estrategia && <p className="text-sm mt-1.5"><span className="text-xs uppercase tracking-wide text-alb-mid font-semibold">Estrategia: </span>{f.estrategia}</p>}
+                      {f.fuente && <p className="text-[11px] text-alb-mid mt-1.5">{f.fuente}</p>}
+                    </div>
+                  ))}
                 </div>
               )}
             </div>

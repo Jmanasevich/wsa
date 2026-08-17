@@ -27,6 +27,17 @@ export async function GET(req: NextRequest) {
   if (!cron && !autorizado(req)) return noAutorizado();
 
   const sp = req.nextUrl.searchParams;
+
+  if (sp.get('lista') === '1') {
+    const { data } = await db().from('financieros')
+      .select('productor,pais,periodo_reporte,fecha_publicacion,ingresos_musd,margen_pct,resumen,estrategia,fuente')
+      .order('fecha_publicacion', { ascending: false, nullsFirst: false });
+    const visto = new Set<string>();
+    const filas = (data ?? []).filter(f => { if (visto.has(f.productor)) return false; visto.add(f.productor); return true; });
+    const { data: cotiz } = await db().from('productores').select('nombre').eq('cotiza', true);
+    return NextResponse.json({ filas, cotizadas: (cotiz ?? []).map(c => c.nombre), leidas: filas.length });
+  }
+
   let productor = sp.get('productor') || '';
   let pais = '';
 
