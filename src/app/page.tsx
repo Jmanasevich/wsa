@@ -11,7 +11,7 @@ const MODOS: { id: Modo; nombre: string; hint: string; ph: string }[] = [
   { id: 'deep_dive', nombre: 'Deep-Dive', hint: 'Análisis profundo de un mercado, canal o marca: cascada de precios, competencia y plan de entrada con hitos.', ph: 'Describa el mercado, canal o marca a profundizar…' },
   { id: 'deal', nombre: 'Deal', hint: 'Evalúa una oferta concreta (importador, tender, private label): aceptar, contraofertar o rechazar, con números.', ph: 'Pegue la oferta o describa el deal a evaluar (precio, volumen, plazo, contraparte)…' },
   { id: 'defensa', nombre: 'Defensa', hint: 'Detecta dónde la viña está perdiendo participación o margen hoy, qué competidor lo causa y cómo responder.', ph: 'Describa dónde sospecha pérdida de share o margen (mercado, canal, marca)…' },
-  { id: 'gancho', nombre: 'Gancho GG', hint: 'Informe de conquista para presentar a un gerente general: qué embarca su viña hoy, la plata que deja en la mesa, una ventana con fecha y la propuesta de piloto de 90 días.', ph: 'Seleccione la viña arriba. Opcional: foco (mercado o categoría) y contexto de la reunión…' },
+  { id: 'gancho', nombre: 'Diagnóstico Ejecutivo', hint: 'Informe para presentar a un gerente general: qué embarca su viña hoy, las brechas de valor cuantificadas, una ventana concreta con fecha y la propuesta de piloto de 90 días.', ph: 'Seleccione la viña arriba. Opcional: foco (mercado o categoría) y contexto de la reunión…' },
   { id: 'competidor', nombre: 'Competidor', hint: 'Vigila a un competidor chileno o extranjero: portafolio, precios por mercado, movimientos recientes fechados y la jugada de respuesta.', ph: 'Nombre del competidor (viña, grupo o marca; chileno o extranjero) + foco opcional (mercado, categoría)…' },
 ];
 

@@ -207,7 +207,7 @@ export async function ejecutarAgente(modo: Modo, consulta: string, perfil: Perfi
   const system = [promptMaestro(), embarques, fuentes, conocimiento, memoria, INSTRUCCION_SALIDA_JSON].filter(Boolean).join('\n\n---\n\n');
   const etiquetaModo = {
     radar: 'RADAR', deep_dive: 'DEEP-DIVE', deal: 'DEAL', defensa: 'DEFENSA',
-    gancho: 'GANCHO (informe de conquista para un GG)', competidor: 'COMPETIDOR (vigilancia de un actor)',
+    gancho: 'DIAGNÓSTICO EJECUTIVO (informe de conquista para un GG; sigue [MODO GANCHO])', competidor: 'COMPETIDOR (vigilancia de un actor)',
   }[modo];
   const user = `[MODO: ${etiquetaModo}] [PERFIL: ${PERFILES[perfil]}]\n\n${consulta}`;
 
