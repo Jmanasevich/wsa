@@ -4,39 +4,25 @@ import { autorizado, noAutorizado } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
-// Comparador de ventas directo sobre embarques_vina (Aduana). Sin LLM: instantaneo.
+// Comparador de ventas directo sobre embarques_vina (Aduana), agregado en SQL (RPC). Instantaneo.
 export async function GET(req: NextRequest) {
   if (!autorizado(req)) return noAutorizado();
   const sp = req.nextUrl.searchParams;
-  const dim = (['vina', 'mercado', 'formato'].includes(sp.get('dim') || '') ? sp.get('dim') : 'vina') as 'vina' | 'mercado' | 'formato';
-  const fVina = sp.get('vina') || '';
-  const fMercado = sp.get('mercado') || '';
-  const fFormato = sp.get('formato') || '';
-
+  const dim = ['vina', 'mercado', 'formato'].includes(sp.get('dim') || '') ? (sp.get('dim') as string) : 'vina';
   try {
-    let q = db().from('embarques_vina').select('vina,mercado,formato,volumen_l,valor_usd');
-    if (fVina) q = q.eq('vina', fVina);
-    if (fMercado) q = q.eq('mercado', fMercado);
-    if (fFormato) q = q.eq('formato', fFormato);
-    const { data, error } = await q.limit(20000);
+    const { data, error } = await db().rpc('comparar_ventas', {
+      p_dim: dim,
+      p_vina: sp.get('vina') || null,
+      p_mercado: sp.get('mercado') || null,
+      p_formato: sp.get('formato') || null,
+    });
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-
-    const agg: Record<string, { u: number; l: number }> = {};
-    for (const r of data ?? []) {
-      const k = String((r as any)[dim]);
-      const a = (agg[k] ??= { u: 0, l: 0 });
-      a.u += Number(r.valor_usd) || 0; a.l += Number(r.volumen_l) || 0;
-    }
-    const total = Object.values(agg).reduce((s, x) => s + x.u, 0) || 1;
-    const filas = Object.entries(agg)
-      .map(([k, x]) => ({
-        clave: k, valor_usd: Math.round(x.u), volumen_l: Math.round(x.l),
-        precio_l: x.l ? +(x.u / x.l).toFixed(2) : null, share: +(100 * x.u / total).toFixed(1),
-      }))
-      .sort((a, b) => b.valor_usd - a.valor_usd);
-
-    const vinas = Array.from(new Set((data ?? []).map(r => r.vina))).sort();
-    return NextResponse.json({ dim, filas, total_usd: Math.round(total), periodo: '2025', n: filas.length, vinas });
+    const total = (data ?? []).reduce((s: number, r: any) => s + Number(r.valor_usd || 0), 0) || 1;
+    const filas = (data ?? []).map((r: any) => {
+      const u = Number(r.valor_usd) || 0, l = Number(r.volumen_l) || 0;
+      return { clave: r.clave, valor_usd: Math.round(u), volumen_l: Math.round(l), precio_l: l ? +(u / l).toFixed(2) : null, share: +(100 * u / total).toFixed(1) };
+    });
+    return NextResponse.json({ dim, filas, total_usd: Math.round(total), periodo: '2025', n: filas.length });
   } catch (e: any) {
     return NextResponse.json({ error: e?.message || 'Error' }, { status: 500 });
   }
@@ -45,9 +31,10 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   if (!autorizado(req)) return noAutorizado();
   try {
-    const { data } = await db().from('embarques_vina').select('vina,mercado').limit(20000);
-    const vinas = Array.from(new Set((data ?? []).map(r => r.vina))).sort();
-    const mercados = Array.from(new Set((data ?? []).map(r => r.mercado))).sort();
+    const { data, error } = await db().rpc('catalogos_ventas');
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    const vinas = (data ?? []).filter((r: any) => r.tipo === 'vina').map((r: any) => r.valor).sort();
+    const mercados = (data ?? []).filter((r: any) => r.tipo === 'mercado').map((r: any) => r.valor).sort();
     return NextResponse.json({ vinas, mercados });
   } catch (e: any) {
     return NextResponse.json({ error: e?.message || 'Error' }, { status: 500 });
