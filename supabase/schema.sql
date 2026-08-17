@@ -85,6 +85,33 @@ create table if not exists vinas (
 );
 alter table vinas enable row level security;
 
+create table if not exists embarques (
+  id bigint generated always as identity primary key,
+  periodo text not null,                          -- 'YYYYMM' (M) o 'YYYY' (A)
+  freq text not null default 'M',
+  partida text not null,                          -- 220410|220421|220422|220429
+  mercado text not null,                          -- nombre Comtrade en inglés; 'World' = total
+  volumen_l numeric,
+  valor_usd numeric,
+  fuente text not null default 'UN Comtrade',
+  unique(periodo, partida, mercado)
+);
+create index if not exists idx_embarques_mercado on embarques(mercado, periodo);
+alter table embarques enable row level security;
+
+create table if not exists fuentes (
+  id uuid default gen_random_uuid() primary key,
+  created_at timestamptz default now(),
+  tipo text not null,                             -- lider_opinion|concurso|feria|gremio|monopolio|dato|prensa
+  nombre text not null,
+  mercado text not null default 'Global',
+  url text,
+  descripcion text,
+  activo boolean not null default true,
+  unique(nombre, mercado)
+);
+alter table fuentes enable row level security;
+
 create index if not exists idx_oportunidades_estado on oportunidades(estado);
 create index if not exists idx_ventanas_cierre on ventanas(estado, fecha_cierre);
 create index if not exists idx_senales_estado on senales(estado, proxima_revision);

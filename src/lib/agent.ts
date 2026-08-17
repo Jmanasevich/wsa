@@ -4,7 +4,7 @@ import { promptMaestro, INSTRUCCION_SALIDA_JSON } from './prompt';
 
 const MODELO = process.env.CWGIA_MODEL || 'claude-sonnet-4-6';
 
-export type Modo = 'radar' | 'deep_dive' | 'deal' | 'defensa';
+export type Modo = 'radar' | 'deep_dive' | 'deal' | 'defensa' | 'gancho' | 'competidor';
 
 export interface ResultadoAgente {
   informe_md: string;
@@ -48,6 +48,65 @@ async function contextoDeTrabajo(): Promise<string> {
   }
   if (!partes.length) return 'MEMORIA DE TRABAJO: vacía (primera sesión). Construye pipeline desde cero.';
   return 'MEMORIA DE TRABAJO ACTUAL (fecha ' + hoy + '):\n\n' + partes.join('\n\n');
+}
+
+// ---------- Datos internos: embarques (UN Comtrade) y catálogo de fuentes ----------
+const MAPA_MERCADOS: [string, string][] = [
+  ['ee.uu', 'USA'], ['estados unidos', 'USA'], ['reino unido', 'United Kingdom'], ['brasil', 'Brazil'],
+  ['china', 'China'], ['japón', 'Japan'], ['japon', 'Japan'], ['corea', 'Rep. of Korea'],
+  ['canadá', 'Canada'], ['canada', 'Canada'], ['méxico', 'Mexico'], ['mexico', 'Mexico'],
+  ['suecia', 'Sweden'], ['noruega', 'Norway'], ['finlandia', 'Finland'], ['alemania', 'Germany'],
+  ['países bajos', 'Netherlands'], ['paises bajos', 'Netherlands'], ['holanda', 'Netherlands'],
+  ['irlanda', 'Ireland'], ['dinamarca', 'Denmark'], ['francia', 'France'], ['españa', 'Spain'],
+];
+const NOMBRE_PARTIDA: Record<string, string> = {
+  '220410': 'espumoso', '220421': 'embotellado ≤2L', '220422': 'formato 2-10L (BiB)', '220429': 'granel',
+};
+
+async function embarquesResumen(consulta: string): Promise<string> {
+  try {
+    const texto = consulta.toLowerCase();
+    const objetivo = MAPA_MERCADOS.find(([es]) => texto.includes(es))?.[1] ?? null;
+    if (objetivo) {
+      const { data } = await db().from('embarques').select('partida,volumen_l,valor_usd')
+        .eq('mercado', objetivo).eq('freq', 'M');
+      if (!data?.length) return '';
+      const por: Record<string, { v: number; u: number }> = {};
+      for (const r of data) {
+        const p = (por[r.partida] ??= { v: 0, u: 0 });
+        p.v += Number(r.volumen_l) || 0; p.u += Number(r.valor_usd) || 0;
+      }
+      const lineas = Object.entries(por).sort((a, b) => b[1].u - a[1].u).map(([k, x]) =>
+        `- ${NOMBRE_PARTIDA[k] ?? k}: US$ ${(x.u / 1e6).toFixed(1)}M FOB, ${(x.v / 1e6).toFixed(1)}M litros, precio medio US$ ${(x.u / (x.v || 1)).toFixed(2)}/L`);
+      return `EMBARQUES DE VINO CHILENO A ${objetivo.toUpperCase()} — año 2025 completo, por partida [verificado: UN Comtrade, base interna]:\n${lineas.join('\n')}\nUsa estas cifras como línea base oficial del mercado; complementa con la web para lo corrido de 2026.`;
+    }
+    const { data } = await db().from('embarques').select('mercado,volumen_l,valor_usd').eq('freq', 'M');
+    if (!data?.length) return '';
+    const agg: Record<string, { u: number; v: number }> = {};
+    for (const r of data) {
+      const p = (agg[r.mercado] ??= { u: 0, v: 0 });
+      p.u += Number(r.valor_usd) || 0; p.v += Number(r.volumen_l) || 0;
+    }
+    const top = Object.entries(agg).sort((a, b) => b[1].u - a[1].u).slice(0, 10)
+      .map(([m, x], i) => `${i + 1}. ${m}: US$ ${(x.u / 1e6).toFixed(0)}M FOB (precio medio US$ ${(x.u / (x.v || 1)).toFixed(2)}/L)`);
+    return 'TOP 10 MERCADOS DEL VINO CHILENO 2025 [verificado: UN Comtrade, base interna]:\n' + top.join('\n');
+  } catch { return ''; }
+}
+
+async function fuentesRelevantes(consulta: string): Promise<string> {
+  try {
+    const { data } = await db().from('fuentes').select('tipo,nombre,mercado,url,descripcion')
+      .eq('activo', true).limit(200);
+    if (!data?.length) return '';
+    const texto = consulta.toLowerCase();
+    const delMercado = data.filter(f => f.mercado !== 'Global' && texto.includes(String(f.mercado).toLowerCase()));
+    const globales = data.filter(f => f.mercado === 'Global');
+    const sel = [...delMercado, ...globales].slice(0, 22);
+    if (!sel.length) return '';
+    const lista = sel.map(f =>
+      `- [${f.tipo}] ${f.nombre}${f.mercado !== 'Global' ? ' (' + f.mercado + ')' : ''}${f.url ? ' — ' + f.url : ''}${f.descripcion ? ': ' + f.descripcion : ''}`);
+    return 'CATÁLOGO INTERNO DE FUENTES PRIORITARIAS (consúltalas primero; los líderes de opinión, concursos y ferias son además palancas comerciales — medallas, puntajes y presencia en feria abren canales):\n' + lista.join('\n');
+  } catch { return ''; }
 }
 
 // ---------- Base de conocimiento interna ----------
@@ -141,10 +200,15 @@ const PERFILES: Record<Perfil, string> = {
 export async function ejecutarAgente(modo: Modo, consulta: string, perfil: Perfil, verificarWeb = true): Promise<ResultadoAgente> {
   const inicio = Date.now();
   const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-  const [memoria, conocimiento] = await Promise.all([contextoDeTrabajo(), conocimientoRelevante(consulta)]);
+  const [memoria, conocimiento, embarques, fuentes] = await Promise.all([
+    contextoDeTrabajo(), conocimientoRelevante(consulta), embarquesResumen(consulta), fuentesRelevantes(consulta),
+  ]);
 
-  const system = [promptMaestro(), conocimiento, memoria, INSTRUCCION_SALIDA_JSON].filter(Boolean).join('\n\n---\n\n');
-  const etiquetaModo = { radar: 'RADAR', deep_dive: 'DEEP-DIVE', deal: 'DEAL', defensa: 'DEFENSA' }[modo];
+  const system = [promptMaestro(), embarques, fuentes, conocimiento, memoria, INSTRUCCION_SALIDA_JSON].filter(Boolean).join('\n\n---\n\n');
+  const etiquetaModo = {
+    radar: 'RADAR', deep_dive: 'DEEP-DIVE', deal: 'DEAL', defensa: 'DEFENSA',
+    gancho: 'GANCHO (informe de conquista para un GG)', competidor: 'COMPETIDOR (vigilancia de un actor)',
+  }[modo];
   const user = `[MODO: ${etiquetaModo}] [PERFIL: ${PERFILES[perfil]}]\n\n${consulta}`;
 
   const req: Anthropic.MessageCreateParamsNonStreaming = {

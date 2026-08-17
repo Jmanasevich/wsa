@@ -4,13 +4,15 @@ import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { marked } from 'marked';
 
-type Modo = 'radar' | 'deep_dive' | 'deal' | 'defensa';
+type Modo = 'radar' | 'deep_dive' | 'deal' | 'defensa' | 'gancho' | 'competidor';
 
-const MODOS: { id: Modo; nombre: string; hint: string }[] = [
-  { id: 'radar', nombre: 'Radar', hint: 'Barrido amplio de mercados y canales. Devuelve un ranking de 3-5 oportunidades priorizadas con score y contraparte.' },
-  { id: 'deep_dive', nombre: 'Deep-Dive', hint: 'Análisis profundo de un mercado, canal o marca: cascada de precios, competencia y plan de entrada con hitos.' },
-  { id: 'deal', nombre: 'Deal', hint: 'Evalúa una oferta concreta (importador, tender, private label): aceptar, contraofertar o rechazar, con números.' },
-  { id: 'defensa', nombre: 'Defensa', hint: 'Detecta dónde la viña está perdiendo participación o margen hoy, qué competidor lo causa y cómo responder.' },
+const MODOS: { id: Modo; nombre: string; hint: string; ph: string }[] = [
+  { id: 'radar', nombre: 'Radar', hint: 'Barrido amplio de mercados y canales. Devuelve un ranking de 3-5 oportunidades priorizadas con score y contraparte.', ph: 'Opcional: acote el radar (ej: "solo Asia" o "solo NoLo y espumoso"). Vacío = radar global.' },
+  { id: 'deep_dive', nombre: 'Deep-Dive', hint: 'Análisis profundo de un mercado, canal o marca: cascada de precios, competencia y plan de entrada con hitos.', ph: 'Describa el mercado, canal o marca a profundizar…' },
+  { id: 'deal', nombre: 'Deal', hint: 'Evalúa una oferta concreta (importador, tender, private label): aceptar, contraofertar o rechazar, con números.', ph: 'Pegue la oferta o describa el deal a evaluar (precio, volumen, plazo, contraparte)…' },
+  { id: 'defensa', nombre: 'Defensa', hint: 'Detecta dónde la viña está perdiendo participación o margen hoy, qué competidor lo causa y cómo responder.', ph: 'Describa dónde sospecha pérdida de share o margen (mercado, canal, marca)…' },
+  { id: 'gancho', nombre: 'Gancho GG', hint: 'Informe de conquista para presentar a un gerente general: qué embarca su viña hoy, la plata que deja en la mesa, una ventana con fecha y la propuesta de piloto de 90 días.', ph: 'Seleccione la viña arriba. Opcional: foco (mercado o categoría) y contexto de la reunión…' },
+  { id: 'competidor', nombre: 'Competidor', hint: 'Vigila a un competidor chileno o extranjero: portafolio, precios por mercado, movimientos recientes fechados y la jugada de respuesta.', ph: 'Nombre del competidor (viña, grupo o marca; chileno o extranjero) + foco opcional (mercado, categoría)…' },
 ];
 
 const PERFILES = [
@@ -226,7 +228,7 @@ export default function Home() {
         <section className="card p-6 space-y-5">
           <div>
             <p className="text-[11px] uppercase tracking-[0.15em] text-alb-mid mb-2.5 font-semibold">Modo de análisis</p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
               {MODOS.map(m => (
                 <button key={m.id} onClick={() => setModo(m.id)}
                   className={`text-left rounded-xl border p-3 transition-all duration-150 ${modo === m.id ? 'border-vino bg-[#F7ECEC] shadow-sm' : 'border-gray-200 bg-white hover:border-vino/50'}`}>
@@ -280,7 +282,7 @@ export default function Home() {
 
           <textarea
             value={consulta} onChange={e => setConsulta(e.target.value)} rows={3}
-            placeholder={modo === 'radar' ? 'Opcional: acote el radar (ej: "solo Asia" o "solo NoLo y espumoso"). Vacío = radar global.' : 'Describa el mercado, canal, marca u oferta a evaluar…'}
+            placeholder={MODOS.find(m => m.id === modo)?.ph}
             className="w-full border border-gray-300 rounded-xl p-3.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#722F37]/30 focus:border-vino bg-[#FBFAF8]"
           />
           <div className="flex items-center gap-4 flex-wrap">
@@ -293,6 +295,11 @@ export default function Home() {
               </span>
             )}
             {meta && !cargando && <span className="text-xs text-alb-mid">{meta}</span>}
+            {informe && !cargando && (
+              <button onClick={abrirInforme} className="text-xs font-medium border border-gray-300 rounded-lg px-3 py-1.5 hover:border-vino hover:text-vino transition-colors">
+                Reabrir último informe ↗
+              </button>
+            )}
           </div>
           {error && <p className="text-sm text-red-700 bg-red-50 border border-red-100 rounded-xl px-4 py-2.5">{error}</p>}
         </section>
@@ -354,19 +361,6 @@ export default function Home() {
             </div>
           )}
         </section>
-
-        {/* Informe */}
-        {informe && (
-          <section className="card p-7">
-            <div className="flex justify-between items-center mb-4 pb-3 border-b" style={{ borderColor: 'var(--card-border)' }}>
-              <h2 className="font-bold text-alb-primary tracking-wide">Informe</h2>
-              <button onClick={abrirInforme} className="text-xs font-medium border border-gray-300 rounded-lg px-3.5 py-1.5 hover:border-vino hover:text-vino transition-colors">
-                Abrir en pestaña / PDF ↗
-              </button>
-            </div>
-            <div className="informe" dangerouslySetInnerHTML={{ __html: marked.parse(informe) as string }} />
-          </section>
-        )}
 
         {/* Resumen del pipeline */}
         {!!ops.length && (
@@ -464,7 +458,7 @@ export default function Home() {
         )}
 
         {/* Estado vacío */}
-        {pipeline && !ops.length && !informe && (
+        {pipeline && !ops.length && (
           <section className="card p-10 text-center">
             <p className="text-alb-mid text-sm">El pipeline está vacío. Ejecute un <span className="font-semibold text-vino">Radar</span> para generar las primeras oportunidades.</p>
           </section>
