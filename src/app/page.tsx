@@ -38,6 +38,24 @@ const MERCADOS = ['Global', 'EE.UU.', 'Reino Unido', 'Brasil', 'China', 'Japón'
 const CANALES = ['Todos los canales', 'Retail / Off-trade', 'Monopolio estatal', 'On-trade / HORECA', 'E-commerce / DTC', 'Private label', 'Granel'];
 const CEPAS = ['Todas las cepas', 'Sauvignon Blanc', 'Pinot Noir', 'Cabernet Sauvignon', 'Carmenère', 'Chardonnay', 'Syrah', 'Cinsault / País (Itata-Maule)', 'Blend tinto', 'Espumoso', 'Rosado', 'NoLo (sin/bajo alcohol)', 'Orgánico / sustentable'];
 
+function PanBarras({ items, color }: { items: { label: string; v: number; txt: string }[]; color: string }) {
+  if (!items.length) return <p className="text-xs text-alb-mid">Sin datos.</p>;
+  const max = Math.max(...items.map((i) => i.v), 1);
+  return (
+    <div className="space-y-1.5">
+      {items.map((i) => (
+        <div key={i.label} className="flex items-center gap-3">
+          <div className="w-28 shrink-0 text-xs text-alb-primary truncate" title={i.label}>{i.label}</div>
+          <div className="flex-1 h-2.5 rounded-full" style={{ background: 'var(--card-border)' }}>
+            <div className="h-2.5 rounded-full" style={{ width: `${Math.max(3, (100 * i.v) / max)}%`, background: color }} />
+          </div>
+          <div className="w-28 shrink-0 text-right text-xs font-semibold" style={{ color: 'var(--vino-deep)' }}>{i.txt}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function Home() {
   const [modo, setModo] = useState<Modo>('radar');
   const [perfil, setPerfil] = useState<'A' | 'B' | 'C'>('A');
@@ -73,6 +91,22 @@ export default function Home() {
     return h;
   };
 
+  const [panVina, setPanVina] = useState('Concha y Toro');
+  const [panMerc, setPanMerc] = useState<any[]>([]);
+  const [panFmt, setPanFmt] = useState<any[]>([]);
+  const [panLoad, setPanLoad] = useState(false);
+  const cargarPanorama = async (v: string) => {
+    setPanLoad(true);
+    try {
+      const [rm, rf] = await Promise.all([
+        fetch(`/api/comparar?dim=mercado&vina=${encodeURIComponent(v)}`, { headers: headers() }),
+        fetch(`/api/comparar?dim=formato&vina=${encodeURIComponent(v)}`, { headers: headers() }),
+      ]);
+      setPanMerc(rm.ok ? ((await rm.json()).filas ?? []) : []);
+      setPanFmt(rf.ok ? ((await rf.json()).filas ?? []) : []);
+    } catch { /* silencioso */ } finally { setPanLoad(false); }
+  };
+
   const cargarPipeline = async () => {
     try {
       const r = await fetch('/api/pipeline', { headers: headers() });
@@ -94,7 +128,7 @@ export default function Home() {
     } catch { /* silencioso */ }
   };
 
-  useEffect(() => { cargarPipeline(); cargarKB(); cargarVinas(); /* eslint-disable-next-line */ }, []);
+  useEffect(() => { cargarPipeline(); cargarKB(); cargarVinas(); cargarPanorama('Concha y Toro'); /* eslint-disable-next-line */ }, []);
 
   const elegirVina = async (nombre: string) => {
     if (nombre === '__nueva__') {
@@ -291,6 +325,10 @@ export default function Home() {
     const d = diasPara(v.fecha_cierre); return d !== null && d <= 30;
   });
 
+  const panMercItems = (panMerc || []).slice(0, 10).map((f: any) => ({ label: f.clave, v: Number(f.valor_usd) || 0, txt: `US$ ${((Number(f.valor_usd) || 0) / 1e6).toFixed(1)} MM` }));
+  const panPrecioItems = [...(panMerc || [])].filter((f: any) => f.precio_l).sort((a: any, b: any) => b.precio_l - a.precio_l).slice(0, 10).map((f: any) => ({ label: f.clave, v: Number(f.precio_l) || 0, txt: `US$ ${(Number(f.precio_l) || 0).toFixed(2)}/L` }));
+  const panFmtItems = (panFmt || []).map((f: any) => ({ label: f.clave, v: Number(f.valor_usd) || 0, txt: `US$ ${((Number(f.valor_usd) || 0) / 1e6).toFixed(1)} MM · ${f.share}%` }));
+
   return (
     <div className="flex-1">
       {/* Header */}
@@ -390,6 +428,37 @@ export default function Home() {
             )}
           </div>
           {error && <p className="text-sm text-red-700 bg-red-50 border border-red-100 rounded-xl px-4 py-2.5">{error}</p>}
+        </section>
+
+        {/* Panorama de la viña (dashboard visual) */}
+        <section className="card p-6">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div>
+              <h2 className="font-bold text-alb-primary tracking-wide">Panorama de la viña</h2>
+              <p className="text-xs text-alb-mid mt-0.5">Exportaciones reales 2025 por mercado, precio implícito y mezcla de formato — desde microdatos de Aduana. La base del diagnóstico.</p>
+            </div>
+            <select value={panVina} onChange={(e) => { setPanVina(e.target.value); cargarPanorama(e.target.value); }} className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm">
+              {(vinas.length ? vinas.map((v: any) => v.nombre) : ['Concha y Toro']).map((n: string) => <option key={n} value={n}>{n}</option>)}
+            </select>
+          </div>
+          {panLoad && <p className="text-xs text-alb-mid flex items-center gap-2 mt-4"><span className="spinner" /> Cargando…</p>}
+          {!panLoad && !panMercItems.length && <p className="text-sm text-alb-mid mt-4">Sin embarques cargados para {panVina}. Prueba con una viña del listado (Concha y Toro, VSPT, Santa Rita…).</p>}
+          {!panLoad && !!panMercItems.length && (
+            <div className="grid lg:grid-cols-2 gap-x-8 gap-y-6 mt-5">
+              <div>
+                <div className="text-xs font-semibold uppercase tracking-wide text-alb-mid mb-2.5">Ventas por mercado · US$ 2025</div>
+                <PanBarras items={panMercItems} color="var(--vino)" />
+              </div>
+              <div>
+                <div className="text-xs font-semibold uppercase tracking-wide text-alb-mid mb-2.5">Precio implícito US$/L · premiumización</div>
+                <PanBarras items={panPrecioItems} color="var(--alb-orange)" />
+              </div>
+              <div className="lg:col-span-2">
+                <div className="text-xs font-semibold uppercase tracking-wide text-alb-mid mb-2.5">Mezcla por formato · US$</div>
+                <PanBarras items={panFmtItems} color="var(--vino)" />
+              </div>
+            </div>
+          )}
         </section>
 
         {/* Comparador de ventas (datos Aduana, instantáneo) */}
