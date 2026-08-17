@@ -112,6 +112,18 @@ create table if not exists fuentes (
 );
 alter table fuentes enable row level security;
 
+create table if not exists embarques_vina (
+  id bigint generated always as identity primary key,
+  periodo text not null, vina text not null, mercado text not null,
+  formato text not null,                          -- espumoso|embotellado|BiB|granel
+  volumen_l numeric, valor_usd numeric,
+  fuente text not null default 'Aduana Chile (datos.gob.cl)',
+  unique(periodo, vina, mercado, formato)
+);
+create index if not exists idx_ev_vina on embarques_vina(vina, periodo);
+create index if not exists idx_ev_mercado on embarques_vina(mercado, periodo);
+alter table embarques_vina enable row level security;
+
 create index if not exists idx_oportunidades_estado on oportunidades(estado);
 create index if not exists idx_ventanas_cierre on ventanas(estado, fecha_cierre);
 create index if not exists idx_senales_estado on senales(estado, proxima_revision);

@@ -93,6 +93,33 @@ async function embarquesResumen(consulta: string): Promise<string> {
   } catch { return ''; }
 }
 
+async function embarquesPorVina(consulta: string): Promise<string> {
+  try {
+    const t = consulta.toLowerCase();
+    const { data: vinas } = await db().from('embarques_vina').select('vina').limit(2000);
+    if (!vinas?.length) return '';
+    const nombres = Array.from(new Set(vinas.map(v => v.vina)));
+    const objetivo = nombres.find(n => t.includes(n.toLowerCase().split(' (')[0].toLowerCase()));
+    if (objetivo) {
+      const { data } = await db().from('embarques_vina').select('mercado,formato,volumen_l,valor_usd').eq('vina', objetivo);
+      if (!data?.length) return '';
+      const porMercado: Record<string, { u: number; l: number }> = {};
+      for (const r of data) { const p = (porMercado[r.mercado] ??= { u: 0, l: 0 }); p.u += Number(r.valor_usd) || 0; p.l += Number(r.volumen_l) || 0; }
+      const top = Object.entries(porMercado).sort((a, b) => b[1].u - a[1].u).slice(0, 12)
+        .map(([m, x]) => `- ${m}: US$ ${(x.u / 1e6).toFixed(2)}M FOB, ${(x.l / 1e3).toFixed(0)} mil L, precio medio US$ ${(x.u / (x.l || 1)).toFixed(2)}/L`);
+      const total = Object.values(porMercado).reduce((s, x) => s + x.u, 0);
+      return `EMBARQUES REALES DE ${objetivo.toUpperCase()} — año 2025, por mercado [verificado: Aduana de Chile / datos.gob.cl, nivel exportador]. Total identificado US$ ${(total / 1e6).toFixed(1)}M:\n${top.join('\n')}\nNota: cobertura ~60% del vino chileno mapea a viña por nombre; usa esto como piso verificado y contrasta con la web para lo no cubierto.`;
+    }
+    const { data } = await db().from('embarques_vina').select('vina,valor_usd');
+    if (!data?.length) return '';
+    const agg: Record<string, number> = {};
+    for (const r of data) agg[r.vina] = (agg[r.vina] || 0) + (Number(r.valor_usd) || 0);
+    const top = Object.entries(agg).sort((a, b) => b[1] - a[1]).slice(0, 12)
+      .map(([v, u], i) => `${i + 1}. ${v}: US$ ${(u / 1e6).toFixed(0)}M FOB`);
+    return 'RANKING DE VIÑAS EXPORTADORAS CHILENAS 2025 [verificado: Aduana de Chile / datos.gob.cl, nivel exportador]:\n' + top.join('\n');
+  } catch { return ''; }
+}
+
 async function fuentesRelevantes(consulta: string): Promise<string> {
   try {
     const { data } = await db().from('fuentes').select('tipo,nombre,mercado,url,descripcion')
@@ -200,11 +227,11 @@ const PERFILES: Record<Perfil, string> = {
 export async function ejecutarAgente(modo: Modo, consulta: string, perfil: Perfil, verificarWeb = true): Promise<ResultadoAgente> {
   const inicio = Date.now();
   const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-  const [memoria, conocimiento, embarques, fuentes] = await Promise.all([
-    contextoDeTrabajo(), conocimientoRelevante(consulta), embarquesResumen(consulta), fuentesRelevantes(consulta),
+  const [memoria, conocimiento, embarques, porVina, fuentes] = await Promise.all([
+    contextoDeTrabajo(), conocimientoRelevante(consulta), embarquesResumen(consulta), embarquesPorVina(consulta), fuentesRelevantes(consulta),
   ]);
 
-  const system = [promptMaestro(), embarques, fuentes, conocimiento, memoria, INSTRUCCION_SALIDA_JSON].filter(Boolean).join('\n\n---\n\n');
+  const system = [promptMaestro(), embarques, porVina, fuentes, conocimiento, memoria, INSTRUCCION_SALIDA_JSON].filter(Boolean).join('\n\n---\n\n');
   const etiquetaModo = {
     radar: 'RADAR', deep_dive: 'DEEP-DIVE', deal: 'DEAL', defensa: 'DEFENSA',
     gancho: 'DIAGNÓSTICO EJECUTIVO (informe de conquista para un GG; sigue [MODO GANCHO])', competidor: 'COMPETIDOR (vigilancia de un actor)',
