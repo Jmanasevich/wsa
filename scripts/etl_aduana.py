@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-CWG-IA - ETL de embarques de vino chileno por vina (Aduana / datos.gob.cl).
+WSA - ETL de embarques de vino chileno por vina (Aduana / datos.gob.cl).
 Descarga los registros de exportacion mensuales, filtra vino (HS 2204), mapea la
 vina por el texto de la descripcion, agrega por vina x mercado x formato y hace upsert
 a la app via /api/aduana. Reutilizable para ACTUALIZAR: correr con el/los periodos nuevos.
@@ -8,7 +8,7 @@ a la app via /api/aduana. Reutilizable para ACTUALIZAR: correr con el/los period
 Uso:
   pip install requests
   # instalar unrar (apt-get install unrar / brew install rar)
-  export CWGIA_URL=https://cwg-ia.vercel.app
+  export CWGIA_URL=https://wsa.vercel.app
   export CRON_SECRET=<el mismo de Vercel>
   python etl_aduana.py 2026-01 2026-02      # sin args = ultimo mes publicado (rezago 3 meses)
 """
