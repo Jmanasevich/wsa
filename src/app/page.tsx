@@ -57,6 +57,13 @@ export default function Home() {
   const [vinaSel, setVinaSel] = useState('');
   const [kb, setKb] = useState<any[]>([]);
   const [verKB, setVerKB] = useState(false);
+  const [verCmp, setVerCmp] = useState(false);
+  const [cmpDim, setCmpDim] = useState<'vina' | 'mercado' | 'formato'>('vina');
+  const [cmpVina, setCmpVina] = useState('');
+  const [cmpMercado, setCmpMercado] = useState('');
+  const [cmp, setCmp] = useState<any>(null);
+  const [cmpCat, setCmpCat] = useState<{ vinas: string[]; mercados: string[] }>({ vinas: [], mercados: [] });
+  const [cmpCargando, setCmpCargando] = useState(false);
   const [kbForm, setKbForm] = useState({ tipo: 'nota', titulo: '', mercado: '', cepa: '', fuente: '', fecha_dato: '', contenido: '' });
   const [kbMsg, setKbMsg] = useState('');
 
@@ -126,6 +133,32 @@ export default function Home() {
     await fetch('/api/conocimiento', { method: 'PATCH', headers: headers(), body: JSON.stringify({ id, activo }) });
     cargarKB();
   };
+
+  const comparar = async () => {
+    setCmpCargando(true);
+    try {
+      const p = new URLSearchParams({ dim: cmpDim });
+      if (cmpVina) p.set('vina', cmpVina);
+      if (cmpMercado) p.set('mercado', cmpMercado);
+      const r = await fetch(`/api/comparar?${p.toString()}`, { headers: headers() });
+      if (r.ok) setCmp(await r.json());
+    } catch { /* silencioso */ } finally { setCmpCargando(false); }
+  };
+
+  const abrirComparador = async () => {
+    const nuevo = !verCmp;
+    setVerCmp(nuevo);
+    if (nuevo && !cmpCat.vinas.length) {
+      try {
+        const r = await fetch('/api/comparar', { method: 'POST', headers: headers() });
+        if (r.ok) setCmpCat(await r.json());
+      } catch { /* silencioso */ }
+      comparar();
+    }
+  };
+
+  const fmtUSD = (n: number) => n >= 1e6 ? `US$ ${(n / 1e6).toFixed(1)}M` : `US$ ${(n / 1e3).toFixed(0)}K`;
+  const DIMS: [string, string][] = [['vina', 'Entre viñas'], ['mercado', 'Entre mercados'], ['formato', 'Entre formatos']];
 
   const docReporte = (cuerpo: string, extraHead = '') => `<!doctype html><html lang="es"><head><meta charset="utf-8"><title>CWG-IA — Informe</title>${extraHead}
       <style>body{font-family:Georgia,serif;max-width:860px;margin:2rem auto;padding:0 1rem;color:#2C3A42;line-height:1.55}
@@ -315,6 +348,89 @@ export default function Home() {
             )}
           </div>
           {error && <p className="text-sm text-red-700 bg-red-50 border border-red-100 rounded-xl px-4 py-2.5">{error}</p>}
+        </section>
+
+        {/* Comparador de ventas (datos Aduana, instantáneo) */}
+        <section className="card p-6">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h2 className="font-bold text-alb-primary tracking-wide">Comparador de ventas</h2>
+              <p className="text-xs text-alb-mid mt-0.5">Embarques reales de vino chileno por viña, mercado y formato — año 2025 [Aduana / datos.gob.cl]. Instantáneo, sin IA.</p>
+            </div>
+            <button onClick={abrirComparador} className="text-xs font-medium border border-gray-300 rounded-lg px-3.5 py-1.5 hover:border-vino hover:text-vino transition-colors whitespace-nowrap">
+              {verCmp ? 'Ocultar' : 'Abrir comparador'}
+            </button>
+          </div>
+
+          {verCmp && (
+            <div className="mt-5 space-y-4">
+              <div className="flex flex-wrap items-end gap-3">
+                <div>
+                  <p className="text-[11px] uppercase tracking-wider text-alb-mid font-semibold mb-1.5">Comparar</p>
+                  <div className="flex gap-1.5">
+                    {DIMS.map(([v, n]) => (
+                      <button key={v} onClick={() => setCmpDim(v as any)}
+                        className={`chip chip-sm ${cmpDim === v ? 'chip-on' : 'chip-off'}`}>{n}</button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <p className="text-[11px] uppercase tracking-wider text-alb-mid font-semibold mb-1.5">Filtrar viña</p>
+                  <select value={cmpVina} onChange={e => setCmpVina(e.target.value)}
+                    className="border border-gray-300 rounded-xl px-3 py-2 text-sm bg-white cursor-pointer min-w-[180px]">
+                    <option value="">Todas las viñas</option>
+                    {cmpCat.vinas.map(v => <option key={v} value={v}>{v}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <p className="text-[11px] uppercase tracking-wider text-alb-mid font-semibold mb-1.5">Filtrar mercado</p>
+                  <select value={cmpMercado} onChange={e => setCmpMercado(e.target.value)}
+                    className="border border-gray-300 rounded-xl px-3 py-2 text-sm bg-white cursor-pointer min-w-[160px]">
+                    <option value="">Todos los mercados</option>
+                    {cmpCat.mercados.map(m => <option key={m} value={m}>{m}</option>)}
+                  </select>
+                </div>
+                <button onClick={comparar} disabled={cmpCargando} className="btn-primary !px-5 !py-2 text-sm">
+                  {cmpCargando ? 'Calculando…' : 'Comparar'}
+                </button>
+              </div>
+
+              {cmp?.filas && (
+                <div className="overflow-x-auto">
+                  <div className="text-xs text-alb-mid mb-2">{cmp.n} filas · total {fmtUSD(cmp.total_usd)} FOB · {cmp.periodo}</div>
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-left text-[11px] uppercase tracking-wider text-alb-mid border-b" style={{ borderColor: 'var(--card-border)' }}>
+                        <th className="py-2 pr-3 font-semibold">{cmpDim === 'vina' ? 'Viña' : cmpDim === 'mercado' ? 'Mercado' : 'Formato'}</th>
+                        <th className="pr-3 font-semibold text-right">FOB US$</th>
+                        <th className="pr-3 font-semibold text-right">Volumen (L)</th>
+                        <th className="pr-3 font-semibold text-right">Precio US$/L</th>
+                        <th className="pr-3 font-semibold text-right">Share</th>
+                        <th className="font-semibold w-28"></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {cmp.filas.slice(0, 40).map((f: any) => (
+                        <tr key={f.clave} className="border-b" style={{ borderColor: 'var(--card-border)' }}>
+                          <td className="py-2 pr-3 font-medium text-alb-text">{f.clave}</td>
+                          <td className="pr-3 text-right font-semibold" style={{ color: 'var(--vino)' }}>{fmtUSD(f.valor_usd)}</td>
+                          <td className="pr-3 text-right text-alb-mid">{f.volumen_l.toLocaleString('es-CL')}</td>
+                          <td className="pr-3 text-right">{f.precio_l ?? '—'}</td>
+                          <td className="pr-3 text-right text-alb-mid">{f.share}%</td>
+                          <td>
+                            <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
+                              <div className="h-full rounded-full" style={{ width: `${Math.min(100, f.share)}%`, background: 'linear-gradient(90deg,#722F37,#F26722)' }} />
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  <p className="text-[11px] text-alb-mid mt-2">Cobertura ~60% del vino chileno mapea a viña por nombre. Para análisis con recomendación use el modo Comparativo de Ventas del agente.</p>
+                </div>
+              )}
+            </div>
+          )}
         </section>
 
         {/* Base de conocimiento */}
