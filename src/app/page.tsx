@@ -174,6 +174,34 @@ export default function Home() {
     }
   };
 
+  const [verComp, setVerComp] = useState(false);
+  const [comp, setComp] = useState<any>(null);
+  const [compCargando, setCompCargando] = useState(false);
+  const [compForm, setCompForm] = useState({ mercado: '', nombre: '', tipo: 'importador', portafolio: '', canal: '', url: '' });
+  const [compMsg, setCompMsg] = useState('');
+  const cargarComp = async () => {
+    setCompCargando(true);
+    try {
+      const r = await fetch('/api/compradores', { headers: headers() });
+      if (r.ok) setComp(await r.json());
+    } catch { /* silencioso */ } finally { setCompCargando(false); }
+  };
+  const abrirComp = async () => {
+    const nuevo = !verComp; setVerComp(nuevo);
+    if (nuevo && !comp) await cargarComp();
+  };
+  const agregarComp = async () => {
+    setCompMsg('');
+    if (!compForm.mercado.trim() || !compForm.nombre.trim()) { setCompMsg('Mercado y nombre son obligatorios.'); return; }
+    try {
+      const r = await fetch('/api/compradores', { method: 'POST', headers: headers(), body: JSON.stringify(compForm) });
+      const j = await r.json();
+      if (!r.ok) { setCompMsg(j?.error || 'Error al guardar.'); return; }
+      setCompForm({ mercado: '', nombre: '', tipo: 'importador', portafolio: '', canal: '', url: '' });
+      setCompMsg('Comprador agregado.'); await cargarComp();
+    } catch { setCompMsg('Error de red.'); }
+  };
+
   const docReporte = (cuerpo: string, extraHead = '') => `<!doctype html><html lang="es"><head><meta charset="utf-8"><title>CWG-IA — Informe</title>${extraHead}
       <style>body{font-family:Georgia,serif;max-width:860px;margin:2rem auto;padding:0 1rem;color:#2C3A42;line-height:1.55}
       .cab{font-family:Helvetica,Arial,sans-serif;border-bottom:3px solid #722F37;padding-bottom:10px;margin-bottom:20px}
@@ -513,6 +541,65 @@ export default function Home() {
                   ))}
                 </div>
               )}
+            </div>
+          )}
+        </section>
+
+        {/* Compradores por mercado */}
+        <section className="card p-6">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h2 className="font-bold text-alb-primary tracking-wide">Compradores por mercado</h2>
+              <p className="text-xs text-alb-mid mt-0.5">Importadores, distribuidores y retail reales por mercado. Son la contraparte que el agente nombra y a la que redacta el acercamiento.</p>
+            </div>
+            <button onClick={abrirComp} className="text-xs font-medium border border-gray-300 rounded-lg px-3.5 py-1.5 hover:border-vino hover:text-vino transition-colors whitespace-nowrap">
+              {verComp ? 'Ocultar' : 'Ver compradores'}
+            </button>
+          </div>
+          {verComp && (
+            <div className="mt-5 space-y-5">
+              {compCargando && <p className="text-xs text-alb-mid flex items-center gap-2"><span className="spinner" /> Cargando…</p>}
+              {comp && (
+                <div className="text-xs text-alb-mid">{comp.n} compradores · {comp.mercados?.length ?? 0} mercados</div>
+              )}
+              {!!comp?.items?.length && (
+                <div className="space-y-4">
+                  {(comp.mercados as string[]).map((m) => (
+                    <div key={m}>
+                      <div className="text-xs font-semibold uppercase tracking-wide text-alb-mid mb-1.5">{m}</div>
+                      <div className="grid sm:grid-cols-2 gap-2">
+                        {comp.items.filter((c: any) => c.mercado === m).map((c: any) => (
+                          <div key={c.id} className="rounded-xl p-3 border" style={{ borderColor: 'var(--card-border)', background: '#FBFAF8' }}>
+                            <div className="flex items-baseline justify-between gap-2">
+                              <div className="font-semibold text-alb-primary text-sm">{c.url ? <a href={c.url} target="_blank" rel="noreferrer" className="hover:text-vino">{c.nombre}</a> : c.nombre}</div>
+                              <span className="text-[10px] uppercase tracking-wide text-alb-mid">{c.tipo}</span>
+                            </div>
+                            {c.portafolio && <p className="text-xs text-alb-text mt-1 leading-snug">{c.portafolio}</p>}
+                            {c.canal && <p className="text-[11px] text-alb-mid mt-0.5">Canal: {c.canal}</p>}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div className="rounded-xl p-4 border" style={{ borderColor: 'var(--card-border)' }}>
+                <div className="text-xs font-semibold text-alb-primary mb-2">Agregar comprador</div>
+                <div className="grid sm:grid-cols-2 gap-2">
+                  <input value={compForm.mercado} onChange={(e) => setCompForm({ ...compForm, mercado: e.target.value })} placeholder="Mercado (ej. Reino Unido)" className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm" />
+                  <input value={compForm.nombre} onChange={(e) => setCompForm({ ...compForm, nombre: e.target.value })} placeholder="Nombre del comprador" className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm" />
+                  <select value={compForm.tipo} onChange={(e) => setCompForm({ ...compForm, tipo: e.target.value })} className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm">
+                    {['importador', 'distribuidor', 'retailer', 'monopolio', 'on_trade', 'agente'].map((t) => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                  <input value={compForm.canal} onChange={(e) => setCompForm({ ...compForm, canal: e.target.value })} placeholder="Canal (ej. on-trade premium)" className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm" />
+                  <input value={compForm.portafolio} onChange={(e) => setCompForm({ ...compForm, portafolio: e.target.value })} placeholder="Portafolio / marcas que representa" className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm sm:col-span-2" />
+                  <input value={compForm.url} onChange={(e) => setCompForm({ ...compForm, url: e.target.value })} placeholder="URL (opcional)" className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm sm:col-span-2" />
+                </div>
+                <div className="flex items-center gap-3 mt-2">
+                  <button onClick={agregarComp} className="text-xs font-medium bg-vino text-white rounded-lg px-4 py-1.5 hover:opacity-90 transition-opacity">Agregar</button>
+                  {compMsg && <span className="text-xs text-alb-mid">{compMsg}</span>}
+                </div>
+              </div>
             </div>
           )}
         </section>
