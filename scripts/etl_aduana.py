@@ -136,7 +136,11 @@ def num(x):
 
 def url_mes(periodo):
     anio, mm = periodo[:4], periodo[4:]
-    ds = requests.get("https://datos.gob.cl/api/3/action/package_show?id=registro-de-exportaciones-"+anio, headers=UA, timeout=60).json()
+    ds = None
+    for pid in ("registro-de-exportacion-"+anio, "registro-de-exportaciones-"+anio, "registros-de-exportacion-"+anio):
+        j = requests.get("https://datos.gob.cl/api/3/action/package_show?id="+pid, headers=UA, timeout=60).json()
+        if j.get("success"): ds = j; break
+    if not ds: raise SystemExit("paquete Aduana no encontrado para "+anio)
     for r in ds["result"]["resources"]:
         nm = r["name"].lower()
         if MES[mm] in nm and "exportacion" in nm and not any(w in nm for w in ["bulto","dtran","metadata","tran"]):
