@@ -35,3 +35,5 @@ Cada consulta guarda oportunidades, señales y ventanas en el pipeline; la sigui
 
 ---
 © ALB Consultores SpA
+
+<!-- redeploy trigger tras GitHub outage 2026-08-17 -->
