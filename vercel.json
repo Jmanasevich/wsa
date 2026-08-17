@@ -1,11 +1,32 @@
 {
   "framework": "nextjs",
-  "regions": ["gru1"],
+  "regions": [
+    "gru1"
+  ],
   "functions": {
-    "src/app/api/**/*.ts": { "maxDuration": 300 }
+    "src/app/api/**/*.ts": {
+      "maxDuration": 300
+    }
   },
-  "crons": [{ "path": "/api/cron", "schedule": "0 11 * * *" }],
+  "crons": [
+    {
+      "path": "/api/cron",
+      "schedule": "0 11 * * *"
+    },
+    {
+      "path": "/api/financieros",
+      "schedule": "0 12 * * *"
+    }
+  ],
   "headers": [
-    { "source": "/api/(.*)", "headers": [{ "key": "Cache-Control", "value": "no-store, max-age=0" }] }
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store, max-age=0"
+        }
+      ]
+    }
   ]
 }

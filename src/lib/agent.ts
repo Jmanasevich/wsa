@@ -138,7 +138,15 @@ async function productoresMundo(consulta: string): Promise<string> {
     }
     const lineas = filtradas.slice(0, 40).map(d =>
       `- [${d.pais}] ${d.nombre}${d.grupo && d.grupo !== d.nombre ? ' (grupo ' + d.grupo + ')' : ''}: ${d.marcas ?? ''}${d.segmento ? ' \u2014 ' + d.segmento : ''}${d.revenue_musd ? ` [facturacion grupo ~US$ ${(Number(d.revenue_musd) / 1000).toFixed(1)}B, estimacion publica]` : ''}`);
-    return 'DIRECTORIO DE PRODUCTORES DEL MUNDO (top vinas por pais; usalo para el modo Competidor y contexto competitivo). La facturacion es de GRUPO y orden de magnitud publico \u2014 verificala/actualizala en la web; NO es venta por mercado:\n' + lineas.join('\n');
+    let finTxt = '';
+    try {
+      const { data: fin } = await db().from('financieros').select('productor,periodo_reporte,fecha_publicacion,ingresos_musd,margen_pct,resumen,estrategia').order('fecha_publicacion', { ascending: false, nullsFirst: false }).limit(30);
+      const rel = (fin ?? []).filter((f: any) => filtradas.some(d => d.nombre.toLowerCase().includes(String(f.productor).toLowerCase().split(' (')[0]) || String(f.productor).toLowerCase().includes(d.nombre.toLowerCase().split(' (')[0])) || t.includes(String(f.productor).toLowerCase().split(' (')[0]));
+      const uso = (rel.length ? rel : (fin ?? [])).slice(0, 8);
+      if (uso.length) finTxt = '\n\nBALANCES Y DECLARACIONES RECIENTES (vigilancia financiera propia, para leer estrategia) [verificado: reportes publicos]:\n' +
+        uso.map((f: any) => `- ${f.productor} (${f.periodo_reporte ?? 's/d'}${f.fecha_publicacion ? ', ' + f.fecha_publicacion : ''}): ${f.ingresos_musd ? 'ingresos US$ ' + (Number(f.ingresos_musd)/1000).toFixed(2) + 'B, ' : ''}${f.margen_pct ? 'margen ' + f.margen_pct + '%. ' : ''}${f.resumen ?? ''}${f.estrategia ? ' Estrategia: ' + f.estrategia : ''}`).join('\n');
+    } catch { /* opcional */ }
+    return 'DIRECTORIO DE PRODUCTORES DEL MUNDO (top vinas por pais; usalo para el modo Competidor y contexto competitivo). La facturacion es de GRUPO y orden de magnitud publico \u2014 verificala/actualizala en la web; NO es venta por mercado:\n' + lineas.join('\n') + finTxt;
   } catch { return ''; }
 }
 

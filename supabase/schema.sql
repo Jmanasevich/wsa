@@ -121,6 +121,18 @@ create table if not exists productores (
 create index if not exists idx_prod_pais on productores(pais);
 alter table productores enable row level security;
 
+create table if not exists financieros (
+  id uuid default gen_random_uuid() primary key,
+  created_at timestamptz default now(),
+  productor text not null, pais text,
+  periodo_reporte text, fecha_publicacion date,
+  ingresos_musd numeric, ebit_musd numeric, margen_pct numeric,
+  resumen text not null, estrategia text, fuente text,
+  unique(productor, periodo_reporte)
+);
+create index if not exists idx_fin_prod on financieros(productor, fecha_publicacion);
+alter table financieros enable row level security;
+
 create table if not exists embarques_vina (
   id bigint generated always as identity primary key,
   periodo text not null, vina text not null, mercado text not null,
