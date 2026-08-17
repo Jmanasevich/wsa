@@ -1,4 +1,4 @@
--- CWG-IA — esquema Supabase
+-- WSA — esquema Supabase
 -- Ejecutar en SQL Editor. RLS queda en deny-all: solo la service key del servidor accede.
 
 create table if not exists oportunidades (
