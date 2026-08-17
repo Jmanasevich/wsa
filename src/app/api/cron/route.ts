@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/supabase';
 
-export const maxDuration = 60;
+export const maxDuration = 120;
 export const dynamic = 'force-dynamic';
 
 // --- Refresco mensual de embarques (UN Comtrade, gratis) ---
@@ -63,5 +63,15 @@ export async function GET(req: NextRequest) {
   let embarques: { periodo: string; estado: string };
   try { embarques = await refrescarEmbarques(); } catch (e: any) { embarques = { periodo: '-', estado: e?.message ?? 'error' }; }
 
-  return NextResponse.json({ ok: true, hoy: hoyISO, ventanas_por_cerrar: proximas?.length ?? 0, embarques });
+  // Refresco rotativo de premios/puntajes (un mercado por día) reutilizando /api/premios.
+  let premios: any = { estado: 'omitido' };
+  try {
+    const base = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '';
+    if (base && secreto) {
+      const rp = await fetch(`${base}/api/premios`, { headers: { authorization: `Bearer ${secreto}` }, cache: 'no-store' });
+      premios = await rp.json();
+    }
+  } catch (e: any) { premios = { estado: e?.message ?? 'error' }; }
+
+  return NextResponse.json({ ok: true, hoy: hoyISO, ventanas_por_cerrar: proximas?.length ?? 0, embarques, premios });
 }
