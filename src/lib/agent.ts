@@ -120,6 +120,22 @@ async function embarquesPorVina(consulta: string): Promise<string> {
   } catch { return ''; }
 }
 
+async function financierosRelevantes(consulta: string): Promise<string> {
+  try {
+    const t = consulta.toLowerCase();
+    const dispara = t.includes('competidor') || t.includes('estrategia') || t.includes('balance') || t.includes('financ') || t.includes('comparativo') || t.includes('vs ') || t.includes('versus');
+    const { data } = await db().from('financieros')
+      .select('productor,periodo_reporte,fecha_publicacion,ingresos_musd,margen_pct,resumen,estrategia')
+      .order('fecha_publicacion', { ascending: false, nullsFirst: false }).limit(30);
+    if (!data?.length) return '';
+    const nombra = data.filter(f => t.includes(String(f.productor).toLowerCase().split(' (')[0]));
+    const uso = nombra.length ? nombra : (dispara ? data.slice(0, 6) : []);
+    if (!uso.length) return '';
+    const lin = uso.map(f => `- ${f.productor} (${f.periodo_reporte ?? 's/d'}${f.fecha_publicacion ? ', ' + f.fecha_publicacion : ''}): ${f.ingresos_musd ? 'ingresos US$ ' + (Number(f.ingresos_musd) / 1000).toFixed(2) + 'B, ' : ''}${f.margen_pct != null ? 'margen ' + f.margen_pct + '%. ' : ''}${f.resumen ?? ''}${f.estrategia ? ' \u2192 Estrategia: ' + f.estrategia : ''}`);
+    return 'VIGILANCIA FINANCIERA DE COMPETIDORES [verificado: balances y declaraciones publicas]. Lee la estrategia de sus cifras y anticipa movimientos:\n' + lin.join('\n');
+  } catch { return ''; }
+}
+
 async function productoresMundo(consulta: string): Promise<string> {
   try {
     const t = consulta.toLowerCase();
@@ -257,11 +273,11 @@ const PERFILES: Record<Perfil, string> = {
 export async function ejecutarAgente(modo: Modo, consulta: string, perfil: Perfil, verificarWeb = true): Promise<ResultadoAgente> {
   const inicio = Date.now();
   const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-  const [memoria, conocimiento, embarques, porVina, mundo, fuentes] = await Promise.all([
-    contextoDeTrabajo(), conocimientoRelevante(consulta), embarquesResumen(consulta), embarquesPorVina(consulta), productoresMundo(consulta), fuentesRelevantes(consulta),
+  const [memoria, conocimiento, embarques, porVina, mundo, financieros, fuentes] = await Promise.all([
+    contextoDeTrabajo(), conocimientoRelevante(consulta), embarquesResumen(consulta), embarquesPorVina(consulta), productoresMundo(consulta), financierosRelevantes(consulta), fuentesRelevantes(consulta),
   ]);
 
-  const system = [promptMaestro(), embarques, porVina, mundo, fuentes, conocimiento, memoria, INSTRUCCION_SALIDA_JSON].filter(Boolean).join('\n\n---\n\n');
+  const system = [promptMaestro(), embarques, porVina, mundo, financieros, fuentes, conocimiento, memoria, INSTRUCCION_SALIDA_JSON].filter(Boolean).join('\n\n---\n\n');
   const etiquetaModo = {
     radar: 'RADAR', deep_dive: 'DEEP-DIVE', deal: 'DEAL', defensa: 'DEFENSA',
     gancho: 'DIAGNÓSTICO EJECUTIVO (informe de conquista para un GG; sigue [MODO GANCHO])', competidor: 'COMPETIDOR (vigilancia de un actor)',
@@ -271,7 +287,7 @@ export async function ejecutarAgente(modo: Modo, consulta: string, perfil: Perfi
 
   const req: Anthropic.MessageCreateParamsNonStreaming = {
     model: MODELO,
-    max_tokens: 16000,
+    max_tokens: 20000,
     system,
     messages: [{ role: 'user', content: user }],
   };
