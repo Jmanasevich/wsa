@@ -95,15 +95,18 @@ export default function Home() {
   const [panMerc, setPanMerc] = useState<any[]>([]);
   const [panFmt, setPanFmt] = useState<any[]>([]);
   const [panLoad, setPanLoad] = useState(false);
+  const [panCrec, setPanCrec] = useState<any>(null);
   const cargarPanorama = async (v: string) => {
     setPanLoad(true);
     try {
-      const [rm, rf] = await Promise.all([
+      const [rm, rf, rc] = await Promise.all([
         fetch(`/api/comparar?dim=mercado&vina=${encodeURIComponent(v)}`, { headers: headers() }),
         fetch(`/api/comparar?dim=formato&vina=${encodeURIComponent(v)}`, { headers: headers() }),
+        fetch(`/api/crecimiento?dim=mercado&max=06&vina=${encodeURIComponent(v)}`, { headers: headers() }),
       ]);
       setPanMerc(rm.ok ? ((await rm.json()).filas ?? []) : []);
       setPanFmt(rf.ok ? ((await rf.json()).filas ?? []) : []);
+      setPanCrec(rc.ok ? (await rc.json()) : null);
     } catch { /* silencioso */ } finally { setPanLoad(false); }
   };
 
@@ -499,6 +502,26 @@ export default function Home() {
               <div className="lg:col-span-2">
                 <div className="text-xs font-semibold uppercase tracking-wide text-alb-mid mb-2.5">Mezcla por formato · US$</div>
                 <PanBarras items={panFmtItems} color="var(--vino)" />
+              </div>
+              <div className="lg:col-span-2">
+                <div className="flex items-baseline justify-between mb-2.5 flex-wrap gap-2">
+                  <div className="text-xs font-semibold uppercase tracking-wide text-alb-mid">Crecimiento YTD · ene–jun 2025 → 2026</div>
+                  {panCrec?.total && panCrec.total.delta_pct != null && (
+                    <div className="text-xs text-alb-mid">Total viña: US$ {(panCrec.total.usd_2025 / 1e6).toFixed(1)} → <span className="font-semibold" style={{ color: 'var(--vino-deep)' }}>US$ {(panCrec.total.usd_2026 / 1e6).toFixed(1)} MM</span> <span className="font-bold" style={{ color: panCrec.total.delta_pct > 0 ? '#2E7D5B' : panCrec.total.delta_pct < 0 ? '#B0413E' : 'var(--alb-mid)' }}>{panCrec.total.delta_pct > 0 ? '+' : ''}{panCrec.total.delta_pct}%</span></div>
+                  )}
+                </div>
+                {!panCrec?.filas?.length && <p className="text-xs text-alb-mid">Sin datos 2026 para esta viña todavía.</p>}
+                {!!panCrec?.filas?.length && (
+                  <div className="space-y-1">
+                    {panCrec.filas.slice(0, 10).map((f: any) => (
+                      <div key={f.clave} className="flex items-center gap-3 py-0.5">
+                        <div className="w-28 shrink-0 text-xs text-alb-primary truncate" title={f.clave}>{f.clave}</div>
+                        <div className="flex-1 text-xs text-alb-mid">US$ {(f.usd_2025 / 1e6).toFixed(1)} → <span className="font-semibold" style={{ color: 'var(--vino-deep)' }}>{(f.usd_2026 / 1e6).toFixed(1)} MM</span></div>
+                        <div className="w-16 text-right text-xs font-bold" style={{ color: f.delta_pct > 0 ? '#2E7D5B' : f.delta_pct < 0 ? '#B0413E' : 'var(--alb-mid)' }}>{f.delta_pct == null ? '—' : (f.delta_pct > 0 ? '+' : '') + f.delta_pct + '%'}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           )}
