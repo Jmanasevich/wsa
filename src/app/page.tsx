@@ -430,6 +430,49 @@ export default function Home() {
           {error && <p className="text-sm text-red-700 bg-red-50 border border-red-100 rounded-xl px-4 py-2.5">{error}</p>}
         </section>
 
+        {/* Radar proactivo de oportunidades */}
+        {pipeline && (((pipeline.oportunidades?.length || 0) > 0) || ((pipeline.ventanas?.length || 0) > 0)) && (
+          <section className="card p-6">
+            <div>
+              <h2 className="font-bold text-alb-primary tracking-wide">Radar de oportunidades</h2>
+              <p className="text-xs text-alb-mid mt-0.5">Lo más accionable ahora mismo, sin consultar: ventanas por cerrar y las oportunidades de mayor score del pipeline. Se refresca solo.</p>
+            </div>
+            <div className="grid lg:grid-cols-2 gap-6 mt-5">
+              <div>
+                <div className="text-xs font-semibold uppercase tracking-wide text-alb-mid mb-2.5">Ventanas por cerrar</div>
+                {(() => {
+                  const en30 = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
+                  const vs = (pipeline.ventanas || []).filter((v: any) => v.fecha_cierre && v.fecha_cierre <= en30).slice(0, 6);
+                  if (!vs.length) return <p className="text-xs text-alb-mid">Sin ventanas próximas cargadas.</p>;
+                  return <div className="space-y-2">{vs.map((v: any) => (
+                    <div key={v.id} className="rounded-xl p-3 border" style={{ borderColor: 'var(--card-border)', background: '#FBFAF8' }}>
+                      <div className="flex items-baseline justify-between gap-2">
+                        <div className="text-sm font-semibold text-alb-primary">{v.entidad}</div>
+                        <div className="text-[11px] font-semibold" style={{ color: 'var(--vino)' }}>cierra {v.fecha_cierre}</div>
+                      </div>
+                      <p className="text-xs text-alb-mid mt-0.5">{v.mercado ? v.mercado + ' · ' : ''}{v.descripcion}</p>
+                    </div>))}</div>;
+                })()}
+              </div>
+              <div>
+                <div className="text-xs font-semibold uppercase tracking-wide text-alb-mid mb-2.5">Top oportunidades · score</div>
+                {(() => {
+                  const ops = [...(pipeline.oportunidades || [])].filter((o: any) => o.estado !== 'archivada').sort((a: any, b: any) => (b.score || 0) - (a.score || 0)).slice(0, 6);
+                  if (!ops.length) return <p className="text-xs text-alb-mid">Aún sin oportunidades. Corre un Radar o Deep-Dive.</p>;
+                  return <div className="space-y-2">{ops.map((o: any) => (
+                    <div key={o.id} className="rounded-xl p-3 border flex items-center gap-3" style={{ borderColor: 'var(--card-border)', background: '#FBFAF8' }}>
+                      <div className="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center text-sm font-bold text-white" style={{ background: 'var(--vino)' }}>{o.score ?? '–'}</div>
+                      <div className="min-w-0">
+                        <div className="text-sm font-semibold text-alb-primary truncate">{o.titulo}</div>
+                        <p className="text-[11px] text-alb-mid truncate">{[o.mercado, o.canal, o.palanca].filter(Boolean).join(' · ')}</p>
+                      </div>
+                    </div>))}</div>;
+                })()}
+              </div>
+            </div>
+          </section>
+        )}
+
         {/* Panorama de la viña (dashboard visual) */}
         <section className="card p-6">
           <div className="flex items-center justify-between gap-3 flex-wrap">
