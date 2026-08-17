@@ -202,7 +202,7 @@ export default function Home() {
     } catch { setCompMsg('Error de red.'); }
   };
 
-  const docReporte = (cuerpo: string, extraHead = '') => `<!doctype html><html lang="es"><head><meta charset="utf-8"><title>CWG-IA — Informe</title>${extraHead}
+  const docReporte = (cuerpo: string, extraHead = '') => `<!doctype html><html lang="es"><head><meta charset="utf-8"><title>WSA — Informe</title>${extraHead}
       <style>body{font-family:Georgia,serif;max-width:860px;margin:2rem auto;padding:0 1rem;color:#2C3A42;line-height:1.55}
       .cab{font-family:Helvetica,Arial,sans-serif;border-bottom:3px solid #722F37;padding-bottom:10px;margin-bottom:20px}
       .cab h1{margin:0;color:#722F37;font-size:1.3rem}.cab p{margin:4px 0 0;color:#8B9AA3;font-size:.8rem}
@@ -222,7 +222,7 @@ export default function Home() {
     const perfilN = PERFILES.find(([p]) => p === perfil)?.[1] ?? perfil;
     return docReporte(`
       <div class="cab"><button onclick="window.print()" style="float:right;padding:6px 14px;cursor:pointer">Imprimir / PDF</button>
-      <h1>CWG-IA — Informe ${modoN}</h1><p>${perfilN} · ${fecha} · ALB Consultores</p></div>
+      <h1>WSA — Informe ${modoN}</h1><p>${perfilN} · ${fecha} · ALB Consultores</p></div>
       ${marked.parse(md)}`);
   };
 
@@ -299,7 +299,7 @@ export default function Home() {
           <div className="flex items-center gap-4 min-w-0">
             <Image src="/alb-logo.png" alt="ALB Consultores" width={100} height={40} priority />
             <div className="border-l border-white/25 pl-4 min-w-0">
-              <h1 className="text-lg font-bold leading-tight tracking-wide">CWG-IA</h1>
+              <h1 className="text-lg font-bold leading-tight tracking-wide">WSA — Wine Sales Assistant</h1>
               <p className="text-[11px] text-white/70 truncate">Inteligencia comercial · Viñas chilenas exportadoras</p>
             </div>
           </div>
