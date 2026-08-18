@@ -209,7 +209,7 @@ export default function Home() {
   };
 
   const fmtUSD = (n: number) => n >= 1e6 ? `US$ ${(n / 1e6).toFixed(1)}M` : `US$ ${(n / 1e3).toFixed(0)}K`;
-  const DIMS: [string, string][] = [['vina', 'Entre viñas (Chile)'], ['mercado', 'Entre mercados'], ['formato', 'Entre formatos'], ['mundo', 'Productores del mundo']];
+  const DIMS: [string, string][] = [['vina', 'Ventas reales · viñas'], ['mercado', 'Ventas reales · mercados'], ['formato', 'Ventas reales · formatos'], ['mundo', 'Directorio mundial (ref.)']];
 
   const [verFin, setVerFin] = useState(false);
   const [fin, setFin] = useState<any>(null);
@@ -603,7 +603,7 @@ export default function Home() {
           <div className="flex items-center justify-between gap-3">
             <div>
               <h2 className="font-bold text-alb-primary tracking-wide">Comparador de ventas</h2>
-              <p className="text-xs text-alb-mid mt-0.5">Embarques reales de vino chileno por viña, mercado y formato — año 2025 [Aduana / datos.gob.cl]. Instantáneo, sin IA.</p>
+              <p className="text-xs text-alb-mid mt-0.5">Embarques reales de vino chileno por viña, mercado y formato — 2025–2026 [Aduana / datos.gob.cl]. Instantáneo, sin IA.</p>
             </div>
             <button onClick={abrirComparador} className="text-xs font-medium border border-gray-300 rounded-lg px-3.5 py-1.5 hover:border-vino hover:text-vino transition-colors whitespace-nowrap">
               {verCmp ? 'Ocultar' : 'Abrir comparador'}
@@ -621,6 +621,7 @@ export default function Home() {
                         className={`chip chip-sm ${cmpDim === v ? 'chip-on' : 'chip-off'}`}>{n}</button>
                     ))}
                   </div>
+                  <p className="text-[11px] text-alb-mid mt-1.5 max-w-md">Las tres primeras son <b>ventas reales de aduana</b> (por viña / mercado / formato). "Directorio mundial" es solo referencia de tamaño de grupos extranjeros — no es venta.</p>
                 </div>
                 <div>
                   <p className="text-[11px] uppercase tracking-wider text-alb-mid font-semibold mb-1.5">Filtrar viña</p>
