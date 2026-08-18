@@ -663,12 +663,12 @@ export default function Home() {
                           <td className="pr-3 text-alb-mid">{f.pais}</td>
                           <td className="pr-3 text-alb-mid max-w-[240px]">{f.marcas}</td>
                           <td className="pr-3 text-alb-mid">{f.segmento}</td>
-                          <td className="pr-3 text-right">{f.revenue_musd ? `~US$ ${(f.revenue_musd / 1000).toFixed(1)}B` : '—'}</td>
+                          <td className="pr-3 text-right">{f.revenue_musd ? (f.revenue_musd >= 1000 ? `~US$ ${(f.revenue_musd / 1000).toFixed(1)}B` : `~US$ ${Math.round(f.revenue_musd)}M`) : 'no pública'}</td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
-                  <p className="text-[11px] text-alb-mid mt-2">Facturación de GRUPO, orden de magnitud público — no es venta por mercado. Para ventas por mercado de una viña use el modo Competidor del agente.</p>
+                  <p className="text-[11px] text-alb-mid mt-2">Facturación de GRUPO en orden de magnitud (cotizadas = pública; casas privadas = estimación) — no es venta por mercado. "No pública" = grupo privado sin cifra divulgada. Para ventas por mercado de una viña use el modo Competidor.</p>
                 </div>
               )}
 
