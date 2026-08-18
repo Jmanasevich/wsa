@@ -96,6 +96,17 @@ export default function Home() {
   const [panFmt, setPanFmt] = useState<any[]>([]);
   const [panLoad, setPanLoad] = useState(false);
   const [panCrec, setPanCrec] = useState<any>(null);
+  const [origMerc, setOrigMerc] = useState('EE.UU.');
+  const [origData, setOrigData] = useState<any>(null);
+  const [origMercados, setOrigMercados] = useState<string[]>([]);
+  const [origLoad, setOrigLoad] = useState(false);
+  const cargarOrigenes = async (m: string) => {
+    setOrigLoad(true);
+    try {
+      const r = await fetch(`/api/origenes?mercado=${encodeURIComponent(m)}`, { headers: headers() });
+      if (r.ok) setOrigData(await r.json());
+    } catch { /* silencioso */ } finally { setOrigLoad(false); }
+  };
   const cargarPanorama = async (v: string) => {
     setPanLoad(true);
     try {
@@ -131,7 +142,7 @@ export default function Home() {
     } catch { /* silencioso */ }
   };
 
-  useEffect(() => { cargarPipeline(); cargarKB(); cargarVinas(); cargarPanorama('Concha y Toro'); /* eslint-disable-next-line */ }, []);
+  useEffect(() => { cargarPipeline(); cargarKB(); cargarVinas(); cargarPanorama('Concha y Toro'); cargarOrigenes('EE.UU.'); fetch('/api/origenes', { headers: headers() }).then((r) => (r.ok ? r.json() : null)).then((j) => j && setOrigMercados(j.mercados || [])).catch(() => {}); /* eslint-disable-next-line */ }, []);
 
   const elegirVina = async (nombre: string) => {
     if (nombre === '__nueva__') {
@@ -523,6 +534,45 @@ export default function Home() {
                   </div>
                 )}
               </div>
+            </div>
+          )}
+        </section>
+
+        {/* Competencia por origen (tablero mundial, Comtrade) */}
+        <section className="card p-6">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div>
+              <h2 className="font-bold text-alb-primary tracking-wide">Competencia por origen · el tablero mundial</h2>
+              <p className="text-xs text-alb-mid mt-0.5">Importaciones de vino del mercado por país de origen (Comtrade). Muestra contra quién compite Chile por el anaquel y si gana o pierde participación.</p>
+            </div>
+            <select value={origMerc} onChange={(e) => { setOrigMerc(e.target.value); cargarOrigenes(e.target.value); }} className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm">
+              {(origMercados.length ? origMercados : ['EE.UU.', 'Reino Unido', 'China', 'Brasil', 'Canada', 'Paises Bajos']).map((m: string) => <option key={m} value={m}>{m}</option>)}
+            </select>
+          </div>
+          {origLoad && <p className="text-xs text-alb-mid flex items-center gap-2 mt-4"><span className="spinner" /> Cargando…</p>}
+          {!origLoad && origData?.filas?.length > 0 && (
+            <div className="mt-5">
+              <div className="text-xs text-alb-mid mb-3">
+                Importaciones {origData.anio} · total US$ {(origData.total_usd / 1e6).toFixed(0)} MM.
+                {origData.chile && <> Chile: <span className="font-bold" style={{ color: 'var(--vino)' }}>#{origData.chile.rank} · {origData.chile.share}% de share</span> (US$ {(origData.chile.usd / 1e6).toFixed(0)} MM{origData.chile.delta_pct != null ? `, ${origData.chile.delta_pct > 0 ? '+' : ''}${origData.chile.delta_pct}% a/a` : ''}).</>}
+              </div>
+              <div className="space-y-1.5">
+                {origData.filas.slice(0, 10).map((f: any) => {
+                  const esCL = /chile/i.test(f.origen);
+                  return (
+                    <div key={f.origen} className="flex items-center gap-3">
+                      <div className="w-5 text-right text-xs text-alb-mid">{f.rank}</div>
+                      <div className={'w-24 shrink-0 text-xs truncate ' + (esCL ? 'font-bold' : 'text-alb-primary')} style={esCL ? { color: 'var(--vino)' } : {}} title={f.origen}>{f.origen}</div>
+                      <div className="flex-1 h-2.5 rounded-full" style={{ background: 'var(--card-border)' }}>
+                        <div className="h-2.5 rounded-full" style={{ width: `${Math.max(2, f.share)}%`, background: esCL ? 'var(--vino)' : 'var(--alb-primary)' }} />
+                      </div>
+                      <div className="w-12 text-right text-xs font-semibold" style={{ color: 'var(--vino-deep)' }}>{f.share}%</div>
+                      <div className="w-14 text-right text-xs font-bold" style={{ color: f.delta_pct > 0 ? '#2E7D5B' : f.delta_pct < 0 ? '#B0413E' : 'var(--alb-mid)' }}>{f.delta_pct == null ? '' : (f.delta_pct > 0 ? '+' : '') + f.delta_pct + '%'}</div>
+                    </div>
+                  );
+                })}
+              </div>
+              <p className="text-[11px] text-alb-mid mt-3">Δ% = variación vs. año previo disponible. La pelea de Chile es contra estos orígenes, no solo contra otras viñas chilenas.</p>
             </div>
           )}
         </section>
