@@ -120,6 +120,29 @@ async function embarquesPorVina(consulta: string): Promise<string> {
   } catch { return ''; }
 }
 
+async function competenciaPorOrigen(consulta: string): Promise<string> {
+  const t = consulta.toLowerCase();
+  const MAP: [string, string][] = [['ee.uu', 'EE.UU.'], ['estados unidos', 'EE.UU.'], ['reino unido', 'Reino Unido'], ['uk', 'Reino Unido'], ['brasil', 'Brasil'], ['china', 'China'], ['jap', 'Japon'], ['corea', 'Corea del Sur'], ['canad', 'Canada'], ['mexico', 'Mexico'], ['méxico', 'Mexico'], ['suecia', 'Suecia'], ['alemania', 'Alemania'], ['irlanda', 'Irlanda'], ['dinamarca', 'Dinamarca'], ['países bajos', 'Paises Bajos'], ['holanda', 'Paises Bajos'], ['colombia', 'Colombia'], ['peru', 'Peru'], ['perú', 'Peru']];
+  const merc = MAP.find(([k]) => t.includes(k))?.[1];
+  if (!merc) return '';
+  try {
+    const { data } = await db().from('mercado_origen').select('origen,anio,valor_usd').eq('mercado', merc);
+    if (!data?.length) return '';
+    const anios = Array.from(new Set(data.map((r: any) => r.anio))).sort((a: number, b: number) => b - a);
+    const anio = anios[0]; const prev = anios.find((y: number) => y < anio);
+    const cur = data.filter((r: any) => r.anio === anio);
+    const total = cur.reduce((s: number, r: any) => s + Number(r.valor_usd || 0), 0) || 1;
+    const prevMap: Record<string, number> = {};
+    if (prev != null) for (const r of data.filter((r: any) => r.anio === prev)) prevMap[r.origen] = Number(r.valor_usd || 0);
+    const filas = cur.map((r: any) => { const u = Number(r.valor_usd || 0); const p = prevMap[r.origen]; return { o: r.origen, u, sh: 100 * u / total, d: p ? 100 * (u - p) / p : null }; }).sort((a: any, b: any) => b.u - a.u);
+    const top = filas.slice(0, 8).map((f: any, i: number) => `${i + 1}. ${f.o} ${f.sh.toFixed(1)}% (US$${(f.u / 1e6).toFixed(0)}M${f.d != null ? `, ${f.d > 0 ? '+' : ''}${f.d.toFixed(0)}% a/a` : ''})`).join('\n');
+    const ch: any = filas.find((f: any) => /chile/i.test(f.o)); const chRank = ch ? filas.indexOf(ch) + 1 : null;
+    const suben = filas.filter((f: any) => f.d != null && f.d > 5).map((f: any) => f.o).slice(0, 4);
+    const bajan = filas.filter((f: any) => f.d != null && f.d < -5).map((f: any) => f.o).slice(0, 4);
+    return `COMPETENCIA POR ORIGEN EN ${merc} (importaciones ${anio}, Comtrade — el tablero mundial):\n${top}\n${ch ? `Chile: #${chRank} con ${ch.sh.toFixed(1)}% de share (US$${(ch.u / 1e6).toFixed(0)}M${ch.d != null ? `, ${ch.d > 0 ? '+' : ''}${ch.d.toFixed(0)}% a/a` : ''}).` : 'Chile no figura entre los orígenes cargados de este mercado.'}\nCrecen: ${suben.join(', ') || '—'}. Caen: ${bajan.join(', ') || '—'}.\nLECTURA OBLIGATORIA: distingue si Chile pierde participación frente a otros ORÍGENES (Argentina, Australia, Italia, etc.) o si toda la categoría se contrae en el mercado. Nombra al origen rival que gana el anaquel y, si aplica, a qué precio.`;
+  } catch { return ''; }
+}
+
 async function compradoresYpremios(consulta: string): Promise<string> {
   const partes: string[] = [];
   const t = consulta.toLowerCase();
@@ -298,11 +321,11 @@ const PERFILES: Record<Perfil, string> = {
 export async function ejecutarAgente(modo: Modo, consulta: string, perfil: Perfil, verificarWeb = true): Promise<ResultadoAgente> {
   const inicio = Date.now();
   const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-  const [memoria, conocimiento, embarques, porVina, mundo, financieros, compradores, fuentes] = await Promise.all([
-    contextoDeTrabajo(), conocimientoRelevante(consulta), embarquesResumen(consulta), embarquesPorVina(consulta), productoresMundo(consulta), financierosRelevantes(consulta), compradoresYpremios(consulta), fuentesRelevantes(consulta),
+  const [memoria, conocimiento, embarques, porVina, mundo, financieros, compradores, fuentes, origenes] = await Promise.all([
+    contextoDeTrabajo(), conocimientoRelevante(consulta), embarquesResumen(consulta), embarquesPorVina(consulta), productoresMundo(consulta), financierosRelevantes(consulta), compradoresYpremios(consulta), competenciaPorOrigen(consulta), fuentesRelevantes(consulta),
   ]);
 
-  const system = [promptMaestro(), embarques, porVina, mundo, financieros, compradores, fuentes, conocimiento, memoria, INSTRUCCION_SALIDA_JSON].filter(Boolean).join('\n\n---\n\n');
+  const system = [promptMaestro(), embarques, porVina, mundo, origenes, financieros, compradores, fuentes, conocimiento, memoria, INSTRUCCION_SALIDA_JSON].filter(Boolean).join('\n\n---\n\n');
   const etiquetaModo = {
     radar: 'RADAR', deep_dive: 'DEEP-DIVE', deal: 'DEAL', defensa: 'DEFENSA',
     gancho: 'DIAGNÓSTICO EJECUTIVO (informe de conquista para un GG; sigue [MODO GANCHO])', competidor: 'COMPETIDOR (vigilancia de un actor)',
