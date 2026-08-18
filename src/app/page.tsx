@@ -554,7 +554,7 @@ export default function Home() {
             <div className="mt-5">
               <div className="text-xs text-alb-mid mb-3">
                 Importaciones {origData.anio} · total US$ {(origData.total_usd / 1e6).toFixed(0)} MM.
-                {origData.chile && <> Chile: <span className="font-bold" style={{ color: 'var(--vino)' }}>#{origData.chile.rank} · {origData.chile.share}% de share</span> (US$ {(origData.chile.usd / 1e6).toFixed(0)} MM{origData.chile.delta_pct != null ? `, ${origData.chile.delta_pct > 0 ? '+' : ''}${origData.chile.delta_pct}% a/a` : ''}).</>}
+                {origData.chile && <> Chile: <span className="font-bold" style={{ color: 'var(--vino)' }}>#{origData.chile.rank} · {origData.chile.share}% de share</span> (US$ {(origData.chile.usd / 1e6).toFixed(0)} MM{origData.chile.precio_l != null ? ` · US$${origData.chile.precio_l}/L` : ''}{origData.chile.delta_pct != null ? `, ${origData.chile.delta_pct > 0 ? '+' : ''}${origData.chile.delta_pct}% a/a` : ''}).</>}
               </div>
               <div className="space-y-1.5">
                 {origData.filas.slice(0, 10).map((f: any) => {
@@ -566,13 +566,14 @@ export default function Home() {
                       <div className="flex-1 h-2.5 rounded-full" style={{ background: 'var(--card-border)' }}>
                         <div className="h-2.5 rounded-full" style={{ width: `${Math.max(2, f.share)}%`, background: esCL ? 'var(--vino)' : 'var(--alb-primary)' }} />
                       </div>
+                      <div className="w-16 text-right text-xs text-alb-mid">{f.precio_l != null ? `US$${f.precio_l}/L` : ''}</div>
                       <div className="w-12 text-right text-xs font-semibold" style={{ color: 'var(--vino-deep)' }}>{f.share}%</div>
                       <div className="w-14 text-right text-xs font-bold" style={{ color: f.delta_pct > 0 ? '#2E7D5B' : f.delta_pct < 0 ? '#B0413E' : 'var(--alb-mid)' }}>{f.delta_pct == null ? '' : (f.delta_pct > 0 ? '+' : '') + f.delta_pct + '%'}</div>
                     </div>
                   );
                 })}
               </div>
-              <p className="text-[11px] text-alb-mid mt-3">Δ% = variación vs. año previo disponible. La pelea de Chile es contra estos orígenes, no solo contra otras viñas chilenas.</p>
+              <p className="text-[11px] text-alb-mid mt-3">Δ% = variación vs. año previo disponible. La pelea de Chile es contra estos orígenes, no solo contra otras viñas chilenas. Mira el precio US$/L: si Chile es el más barato, está atrapado en el tramo bajo.</p>
             </div>
           )}
         </section>
