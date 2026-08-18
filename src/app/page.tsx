@@ -96,6 +96,7 @@ export default function Home() {
   const [panFmt, setPanFmt] = useState<any[]>([]);
   const [panLoad, setPanLoad] = useState(false);
   const [panCrec, setPanCrec] = useState<any>(null);
+  const [panPB, setPanPB] = useState<any[]>([]);
   const [origMerc, setOrigMerc] = useState('EE.UU.');
   const [origData, setOrigData] = useState<any>(null);
   const [origMercados, setOrigMercados] = useState<string[]>([]);
@@ -110,14 +111,16 @@ export default function Home() {
   const cargarPanorama = async (v: string) => {
     setPanLoad(true);
     try {
-      const [rm, rf, rc] = await Promise.all([
+      const [rm, rf, rc, rp] = await Promise.all([
         fetch(`/api/comparar?dim=mercado&vina=${encodeURIComponent(v)}`, { headers: headers() }),
         fetch(`/api/comparar?dim=formato&vina=${encodeURIComponent(v)}`, { headers: headers() }),
         fetch(`/api/crecimiento?dim=mercado&max=06&vina=${encodeURIComponent(v)}`, { headers: headers() }),
+        fetch(`/api/precio-vina?vina=${encodeURIComponent(v)}`, { headers: headers() }),
       ]);
       setPanMerc(rm.ok ? ((await rm.json()).filas ?? []) : []);
       setPanFmt(rf.ok ? ((await rf.json()).filas ?? []) : []);
       setPanCrec(rc.ok ? (await rc.json()) : null);
+      setPanPB(rp.ok ? ((await rp.json()).filas ?? []) : []);
     } catch { /* silencioso */ } finally { setPanLoad(false); }
   };
 
@@ -513,6 +516,23 @@ export default function Home() {
               <div className="lg:col-span-2">
                 <div className="text-xs font-semibold uppercase tracking-wide text-alb-mid mb-2.5">Mezcla por formato · US$</div>
                 <PanBarras items={panFmtItems} color="var(--vino)" />
+              </div>
+              <div className="lg:col-span-2">
+                <div className="text-xs font-semibold uppercase tracking-wide text-alb-mid mb-2.5">Tu precio vs el mercado · US$/L</div>
+                {!panPB.length && <p className="text-xs text-alb-mid">Sin datos de precio comparables para esta viña.</p>}
+                {!!panPB.length && (
+                  <div className="space-y-1">
+                    {panPB.slice(0, 10).map((f: any) => (
+                      <div key={f.mercado} className="flex items-center gap-3 py-0.5">
+                        <div className="w-24 shrink-0 text-xs text-alb-primary truncate" title={f.mercado}>{f.mercado}</div>
+                        <div className="w-16 text-right text-xs font-semibold" style={{ color: 'var(--vino-deep)' }}>US${f.vina_precio_l}</div>
+                        <div className="flex-1 text-xs text-alb-mid">Chile {f.chile_l != null ? `US$${f.chile_l}` : '—'} · mercado {f.mercado_l != null ? `US$${f.mercado_l}` : '—'}</div>
+                        <div className="w-28 text-right text-xs font-bold" style={{ color: f.gap_chile_pct == null ? 'var(--alb-mid)' : f.gap_chile_pct >= 0 ? '#2E7D5B' : '#B0413E' }}>{f.gap_chile_pct == null ? '' : (f.gap_chile_pct > 0 ? '+' : '') + f.gap_chile_pct + '% vs Chile'}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <p className="text-[11px] text-alb-mid mt-2">Verde = por sobre el promedio chileno del mercado (mejor mezcla); rojo = por debajo (espacio de premiumización). "Mercado" = promedio de todos los orígenes (Comtrade).</p>
               </div>
               <div className="lg:col-span-2">
                 <div className="flex items-baseline justify-between mb-2.5 flex-wrap gap-2">
