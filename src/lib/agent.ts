@@ -126,7 +126,7 @@ async function competenciaPorOrigen(consulta: string): Promise<string> {
   const merc = MAP.find(([k]) => t.includes(k))?.[1];
   if (!merc) return '';
   try {
-    const { data } = await db().from('mercado_origen').select('origen,anio,valor_usd').eq('mercado', merc);
+    const { data } = await db().from('mercado_origen').select('origen,anio,valor_usd,litros').eq('mercado', merc);
     if (!data?.length) return '';
     const anios = Array.from(new Set(data.map((r: any) => r.anio))).sort((a: number, b: number) => b - a);
     const anio = anios[0]; const prev = anios.find((y: number) => y < anio);
@@ -134,12 +134,21 @@ async function competenciaPorOrigen(consulta: string): Promise<string> {
     const total = cur.reduce((s: number, r: any) => s + Number(r.valor_usd || 0), 0) || 1;
     const prevMap: Record<string, number> = {};
     if (prev != null) for (const r of data.filter((r: any) => r.anio === prev)) prevMap[r.origen] = Number(r.valor_usd || 0);
-    const filas = cur.map((r: any) => { const u = Number(r.valor_usd || 0); const p = prevMap[r.origen]; return { o: r.origen, u, sh: 100 * u / total, d: p ? 100 * (u - p) / p : null }; }).sort((a: any, b: any) => b.u - a.u);
-    const top = filas.slice(0, 8).map((f: any, i: number) => `${i + 1}. ${f.o} ${f.sh.toFixed(1)}% (US$${(f.u / 1e6).toFixed(0)}M${f.d != null ? `, ${f.d > 0 ? '+' : ''}${f.d.toFixed(0)}% a/a` : ''})`).join('\n');
+    const filas = cur.map((r: any) => {
+      const u = Number(r.valor_usd || 0); const l = Number(r.litros || 0); const p = prevMap[r.origen];
+      return { o: r.origen, u, pl: l > 0 ? u / l : null, sh: 100 * u / total, d: p ? 100 * (u - p) / p : null };
+    }).sort((a: any, b: any) => b.u - a.u);
+    const top = filas.slice(0, 8).map((f: any, i: number) => `${i + 1}. ${f.o} ${f.sh.toFixed(1)}% (US$${(f.u / 1e6).toFixed(0)}M${f.pl != null ? `, US$${f.pl.toFixed(2)}/L` : ''}${f.d != null ? `, ${f.d > 0 ? '+' : ''}${f.d.toFixed(0)}% a/a` : ''})`).join('\n');
     const ch: any = filas.find((f: any) => /chile/i.test(f.o)); const chRank = ch ? filas.indexOf(ch) + 1 : null;
+    const arg: any = filas.find((f: any) => /argentin/i.test(f.o));
     const suben = filas.filter((f: any) => f.d != null && f.d > 5).map((f: any) => f.o).slice(0, 4);
     const bajan = filas.filter((f: any) => f.d != null && f.d < -5).map((f: any) => f.o).slice(0, 4);
-    return `COMPETENCIA POR ORIGEN EN ${merc} (importaciones ${anio}, Comtrade — el tablero mundial):\n${top}\n${ch ? `Chile: #${chRank} con ${ch.sh.toFixed(1)}% de share (US$${(ch.u / 1e6).toFixed(0)}M${ch.d != null ? `, ${ch.d > 0 ? '+' : ''}${ch.d.toFixed(0)}% a/a` : ''}).` : 'Chile no figura entre los orígenes cargados de este mercado.'}\nCrecen: ${suben.join(', ') || '—'}. Caen: ${bajan.join(', ') || '—'}.\nLECTURA OBLIGATORIA: distingue si Chile pierde participación frente a otros ORÍGENES (Argentina, Australia, Italia, etc.) o si toda la categoría se contrae en el mercado. Nombra al origen rival que gana el anaquel y, si aplica, a qué precio.`;
+    let precioNota = '';
+    if (ch?.pl != null) {
+      const masBaratos = filas.filter((f: any) => f.pl != null && f.pl < ch.pl && f.sh > 1).length;
+      precioNota = ` Precio Chile US$${ch.pl.toFixed(2)}/L${arg?.pl != null ? ` vs Argentina US$${arg.pl.toFixed(2)}/L (${(arg.pl / ch.pl).toFixed(1)}x)` : ''}; solo ${masBaratos} origen(es) relevante(s) más barato(s) que Chile.`;
+    }
+    return `COMPETENCIA POR ORIGEN EN ${merc} (importaciones ${anio}, Comtrade — el tablero mundial):\n${top}\n${ch ? `Chile: #${chRank} con ${ch.sh.toFixed(1)}% de share (US$${(ch.u / 1e6).toFixed(0)}M${ch.d != null ? `, ${ch.d > 0 ? '+' : ''}${ch.d.toFixed(0)}% a/a` : ''}).${precioNota}` : 'Chile no figura entre los orígenes cargados de este mercado.'}\nCrecen: ${suben.join(', ') || '—'}. Caen: ${bajan.join(', ') || '—'}.\nLECTURA OBLIGATORIA: (1) distingue si Chile pierde participación frente a otros ORÍGENES (Argentina, Australia, Italia) o si toda la categoría se contrae; (2) LEE EL PRECIO: si Chile tiene el menor US$/L, está atrapado en el tramo barato y un rival como Argentina puede facturar lo mismo con menos volumen a mayor precio — esa es la palanca de premiumización. Nombra al rival y el gap de precio.`;
   } catch { return ''; }
 }
 
